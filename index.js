@@ -39,6 +39,26 @@ module.exports = (function() {
      * Get extracts result from *result*
      */
     _extracts_result: function(result, callback) {
+    },
+    /*
+     * Call action=query mediawiki api
+     *
+     * Parameter *o*, defined as {
+     *   titles, array of titles of pages queried, be careful of its length
+     *   prop, a dict where key is a valid property and value is an array of 
+     *   parameters for the key prop,
+     *   list, a dict where key is a valid list and value is an array of 
+     *   parameters for the key list,
+     *   generator, a dict where key is a valid generator and value is an 
+     *   array of parameters for the key generator,
+     *   meta, indexpageids, export, exportnowrap, iwurl, continue, 
+     *   rawcontinue, pageids, revids, converttitles, no use,
+     * }
+     *
+     * 
+     */
+    query: function(o, callback) {
+      
     }
   };
 }());
