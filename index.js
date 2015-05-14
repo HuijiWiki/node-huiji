@@ -10,7 +10,12 @@ module.exports = (function() {
      * Get extracts of pages with given titles
      *
      * Parameter *o*, defined as {
-     *   titles: array of titles, length should not be bigger than 20
+     *   exlimit, int, required, not bigger than 20, 1 by default,
+     *   exintro, true or false, optional, true by default,
+     *   exsentences, int, optinal, not used by default,
+     *   exchars, int, optional, not used by default,
+     *   exsectionformat, string ([plain|wiki]), optional, 'plain' by default,
+     *   exvariant, string, not used by default.
      * }
      *
      * Will generate api GET url for prop-extracts, using following default
@@ -24,16 +29,32 @@ module.exports = (function() {
      * }
      *
      * Return query string used by prop=extracts, e.g.,
-     *   &exintro&titles=芬罗德|芬威
+     *   &exintro&exlimit=10
      */
     extracts: function(o) {
       if (!o) return '';
-      if (!o.titles) return '';
-      var titles = o.titles;
-      titles = _.slice(titles, 0, 20);
-      var exlimit = titles.length;
-      var query = titles.join('|');
-      return query;
+      var exlimit = o.exlimit || 1;
+      exlimit = (exlimit > 20) ? 20 : exlimit;
+      var exintro = (o.exintro == undefined) ? true : o.exintro;
+      var exsentences = exintro ? undefined : o.exsentences;
+      var exchars = (!exintro && !exsentences) ? o.exchars : undefined; 
+      var exsectionformat = o.exsectionformat || 'plain';
+      var exvariant = o.exvariant;
+      var raw = {
+        'exintro': (exintro ? '' : undefined),
+        'exsentences': exsentences,
+        'exchars': exchars,
+        'exsectionformat': exsectionformat,
+        'exvariant': exvariant
+      };
+      var params = _.reduce(raw, function(res, v, k) {
+        v && (res[k] = v);
+        return res;
+      }, {});
+      return _.reduce(params, function(res, v, k) {
+        res += '&' + k + '=' + v;
+        return res;
+      }, '');
     },
     /*
      * Get extracts result from *result*
