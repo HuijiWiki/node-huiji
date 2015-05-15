@@ -38,7 +38,7 @@ module.exports = (function() {
     extracts: function(o) {
       if (_.isEmpty(o)) return '';
       var exlimit = o.exlimit || 1;
-      exlimit = (exlimit > 20) ? 20 : ((exlimit < 1) ? 1 : exlimit);
+      exlimit = (exlimit > 20) ? 20 : (exlimit < 1 ? 1 : exlimit);
       var exintro = (o.exintro == undefined) ? true : o.exintro;
       var exsentences = exintro ? undefined : o.exsentences;
       var exchars = (!exintro && !exsentences) ? o.exchars : undefined; 
@@ -55,7 +55,7 @@ module.exports = (function() {
         'exvariant': exvariant
       };
       var params = _.reduce(raw, function(res, v, k) {
-        (v != undefined) && (res[k] = v);
+        if (v != undefined) res[k] = v;
         return res;
       }, {});
       return _.reduce(params, function(res, v, k) {
@@ -88,7 +88,7 @@ module.exports = (function() {
     pageimages: function(o) {
       if (_.isEmpty(o)) return '';
       var pilimit = o.pilimit || 1;
-      pilimit = (pilimit > 50) ? 50 : pilimit;
+      pilimit = (pilimit > 50) ? 50 : (pilimit < 1 ? 1 : pilimit);
       var pithumbsize = o.pithumbsize || 50;
       return '&pilimit=' + pilimit + '&pithumbsize=' + pithumbsize;
     },
@@ -96,6 +96,7 @@ module.exports = (function() {
      * Parameter *o*, defined as {
      *   titles, array of titles of pages queried, be careful of its length, 
      *   pageids, array of pageids of pages queried, be careful of its length,
+     *   (priority: titles > pageids, only one of them will be used)
      *   prop, a dict where key is a valid property and value is an array of 
      *   parameters for the key prop
      * }
@@ -105,15 +106,19 @@ module.exports = (function() {
       var titles = o.titles || [];
       var pageids = o.pageids || [];
       var prop = o.prop || {};
-      var props = (_.isEmpty(prop) ? '' : _.keysIn(prop));
-      var qs = 'prop=' + props + '&titles=' + titles.join('|') + '&pageids=' 
-        + pageids.join('|');
+      var qs = '';
+      if (!_.isEmpty(prop)) qs = '&prop=' + _.keysIn(prop).join('|');
+      if (!_.isEmpty(titles)) {
+        qs += '&titles=' + titles.join('|');
+      } else if (!_.isEmpty(pageids)) {
+        qs += '&pageids=' + pageids.join('|');
+      }
       var that = this;
-      _.reduce(prop, function(res, v, k) {
-        res += that[k](v);
+      return _.reduce(prop, function(res, v, k) {
+        var func = that[k];
+        if (func) res += func(v);
         return res;
       }, qs);
-      return qs;
     },
     /*
      * Call action=query mediawiki api
