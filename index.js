@@ -161,7 +161,7 @@ module.exports = (function() {
       
       var redirects = (o.redirects == undefined) ? true : o.redirects;
       url += '/api.php?action=query&format=json' + 
-        (redirects ? redirects : '');
+        (redirects ? '&redirects' : '') + qs;
       this.send(url, callback);
     },
     /*
@@ -169,12 +169,15 @@ module.exports = (function() {
      * http://lotr.huiji.wiki/api.php?action=query&prop=extracts&exlimit=
      */
     send: function(url, callback) {
-      /*
+      if (!url) callback('send(): url is empty.');
       request.get(url, function(err, res, body) {
-        
+        if (err) callback(err);
+        if (body && body.query) {
+          callback('', body);
+        } else {
+          callback('send(): No results returned.');
+        }
       });
-      */
-      callback('');
     }
   };
 
