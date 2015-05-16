@@ -57,16 +57,34 @@ describe('prop()', function() {
     huiji.prop(undefined).should.equal('');
     huiji.prop({}).should.equal('');
   });
-  it('when only titles or pageids is provided', function() {
+  it('extract(), pageimages() provided', function() {
+    var o = {};
+    o.extracts = {
+      exlimit: 2
+    };
+    o.pageimages = {
+      pilimit: 2,
+      pithumbsize: 320
+    };
+    huiji.prop(o).should.equal('&prop=extracts|pageimages&exlimit=2&exintro=&explaintext=&exsectionformat=plain&pilimit=2&pithumbsize=320');
+  });
+});
+
+describe('query()', function() {
+  it('when o is empty', function() {
+    huiji.query(undefined).should.equal('');
+    huiji.query({}).should.equal('');
+  });
+  it('when only titles or pageids is provided, without callback', function() {
     var o = {};
     o.titles = ['芬罗德', '芬巩'];
-    huiji.prop(o).should.equal('&titles=芬罗德|芬巩');
+    huiji.query(o).should.equal('&titles=芬罗德|芬巩');
     o.pageids = [10, 20, 30];
-    huiji.prop(o).should.equal('&titles=芬罗德|芬巩');
+    huiji.query(o).should.equal('&titles=芬罗德|芬巩');
     delete o.titles;
-    huiji.prop(o).should.equal('&pageids=10|20|30');
+    huiji.query(o).should.equal('&pageids=10|20|30');
   });
-  it('extract(), pageimages() provided', function() {
+  it('when prop, without callback', function() {
     var o = {};
     o.titles = ['芬罗德', '芬巩'];
     o.prop = {
@@ -78,6 +96,23 @@ describe('prop()', function() {
         pithumbsize: 320
       }
     };
-    huiji.prop(o).should.equal('&prop=extracts|pageimages&titles=芬罗德|芬巩&exlimit=2&exintro=&explaintext=&exsectionformat=plain&pilimit=2&pithumbsize=320');
+    huiji.query(o).should.equal('&titles=芬罗德|芬巩&prop=extracts|pageimages&exlimit=2&exintro=&explaintext=&exsectionformat=plain&pilimit=2&pithumbsize=320');
+  });
+  it('with callback', function(done) {
+    var url = 'http://lotr.huiji.wiki';
+    var o = {};
+    o.titles = ['芬罗德', '芬巩'];
+    o.prop = {
+      extracts: {
+        exlimit: 2
+      },
+      pageimages: {
+        pilimit: 2,
+        pithumbsize: 320
+      }
+    };
+    huiji.query(o, url, function(err, data) {
+      done();
+    });
   });
 });

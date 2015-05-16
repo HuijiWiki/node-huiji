@@ -9,7 +9,7 @@ module.exports = (function() {
     /*
      * Generate part of url to get extracts of pages using parameters in *o*
      *
-     * Parameter *o*, defined as {
+     * Parameter *o*, required, defined as {
      *   exlimit, int, required, not bigger than 20, 1 by default,
      *   exintro, true or false, optional, true by default,
      *   exsentences, int, optinal, not used by default,
@@ -66,7 +66,7 @@ module.exports = (function() {
     /*
      * Generate part of url to get thumbnails of pages using parameters in *o*
      *
-     * Parameter *o*, defined as {
+     * Parameter *o*, required, defined as {
      *   pilimit, int, required, not bigger than 50, 1 by default,
      *   pithumbsize, int, required, 50 by default,
      * }
@@ -93,51 +93,88 @@ module.exports = (function() {
       return '&pilimit=' + pilimit + '&pithumbsize=' + pithumbsize;
     },
     /*
-     * Parameter *o*, defined as {
-     *   titles, array of titles of pages queried, be careful of its length, 
-     *   pageids, array of pageids of pages queried, be careful of its length,
-     *   (priority: titles > pageids, only one of them will be used)
-     *   prop, a dict where key is a valid property and value is an array of 
-     *   parameters for the key prop
-     * }
+     * Generate query string for prop
+     *
+     * Parameter *o*, a dict where key is a valid property and value is an 
+     *   array of parameters for the key 
      */
     prop: function(o) {
       if (_.isEmpty(o)) return '';
-      var titles = o.titles || [];
-      var pageids = o.pageids || [];
-      var prop = o.prop || {};
-      var qs = '';
-      if (!_.isEmpty(prop)) qs = '&prop=' + _.keysIn(prop).join('|');
-      if (!_.isEmpty(titles)) {
-        qs += '&titles=' + titles.join('|');
-      } else if (!_.isEmpty(pageids)) {
-        qs += '&pageids=' + pageids.join('|');
-      }
+      var qs = '&prop=' + _.keysIn(o).join('|');
       var that = this;
-      return _.reduce(prop, function(res, v, k) {
+      return _.reduce(o, function(res, v, k) {
         var func = that[k];
         if (func) res += func(v);
         return res;
       }, qs);
     },
     /*
-     * Call action=query mediawiki api
+     * Call action=query mediawiki api. 
      *
-     * Parameter *o*, defined as {
-     *   titles, array of titles of pages queried, be careful of its length
+     * Parameter *o*, required, defined as {
+     *   titles, array of titles of pages queried, be careful of its length, 
+     *   pageids, array of pageids of pages queried, be careful of its length,
+     *   (priority: titles > pageids, only one of them will be used)
+     *
      *   prop, a dict where key is a valid property and value is an array of 
      *   parameters for the key prop,
+     *
      *   list, a dict where key is a valid list and value is an array of 
      *   parameters for the key list,
+     *
      *   generator, a dict where key is a valid generator and value is an 
      *   array of parameters for the key generator,
+     *
+     *   redirects, true or false, optional, true by default,
+     *
      *   meta, indexpageids, export, exportnowrap, iwurl, continue, 
      *   rawcontinue, pageids, revids, converttitles, no use,
      * }
+     *
+     * *url*, url of wiki queried, optional, e.g., 'http://lotr.huiji.wiki'
+     *
+     * *callback*, callback function to be called after sending request. If
+     * not provided, return query string instead. E.g., 
+     * '&prop=extracts|pageimages&exlimit=2&exintro=&explaintext=&exsectionformat=plain&pilimit=2&pithumbsize=320'
+     *
+     * Will use following default parameters:
+     *   redirects, true,
+     *   format, json
+     *
      */
-    query: function(o, callback) {
+    query: function(o, url, callback) {
       if (_.isEmpty(o)) return '';
-      // TODO
+      var titles = o.titles || [];
+      var pageids = o.pageids || [];
+      var qs = '';
+      if (!_.isEmpty(titles)) {
+        qs += '&titles=' + titles.join('|');
+      } else if (!_.isEmpty(pageids)) {
+        qs += '&pageids=' + pageids.join('|');
+      }
+      // Currently, prop() only
+      // var url = wikiUrl + '/api.php?action=query';
+      if (!_.isEmpty(o.prop)) {
+        qs += this.prop(o.prop);
+      }
+      if (!url || !callback) return qs;
+      
+      var redirects = (o.redirects == undefined) ? true : o.redirects;
+      url += '/api.php?action=query&format=json' + 
+        (redirects ? redirects : '');
+      this.send(url, callback);
+    },
+    /*
+     * Do request to *url*, e.g., 
+     * http://lotr.huiji.wiki/api.php?action=query&prop=extracts&exlimit=
+     */
+    send: function(url, callback) {
+      /*
+      request.get(url, function(err, res, body) {
+        
+      });
+      */
+      callback('');
     }
   };
 
