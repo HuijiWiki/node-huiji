@@ -2,10 +2,10 @@ module.exports = (function() {
   var request = require('request');
   var _ = require('lodash');
   
-  var Huiji = function() {
+  var MWAPI = function() {
   };
   
-  Huiji.prototype = {
+  MWAPI.prototype = {
     /*
      * Generate part of url to get extracts of pages using parameters in *o*
      *
@@ -170,6 +170,7 @@ module.exports = (function() {
      */
     send: function(url, callback) {
       if (!url) callback('send(): url is empty.');
+      console.log('send(): ' + url);
       request.get(url, function(err, res, body) {
         if (err) callback(err);
         if (body && body.query) {
@@ -181,6 +182,6 @@ module.exports = (function() {
     }
   };
 
-  return Huiji;
+  return MWAPI;
 }());
 
