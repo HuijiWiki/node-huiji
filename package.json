@@ -8,7 +8,9 @@
   },
   "dependencies": {
     "request": "*", 
-    "lodash": "*"
+    "lodash": "*",
+    "wechat": "*",
+    "express": "*"
   }, 
   "devDependencies": {
     "mocha": "*", 
