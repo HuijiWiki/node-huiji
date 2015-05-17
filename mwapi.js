@@ -138,7 +138,8 @@ module.exports = (function() {
      * '&prop=extracts|pageimages&exlimit=2&exintro=&explaintext=&exsectionformat=plain&pilimit=2&pithumbsize=320'
      *
      * Will use following default parameters:
-     *   redirects, true,
+     *   redirects, 
+     *   indexpageids, 
      *   format, json
      *
      */
@@ -153,14 +154,13 @@ module.exports = (function() {
         qs += '&pageids=' + pageids.join('|');
       }
       // Currently, prop() only
-      // var url = wikiUrl + '/api.php?action=query';
       if (!_.isEmpty(o.prop)) {
         qs += this.prop(o.prop);
       }
       if (!url || !callback) return qs;
       
       var redirects = (o.redirects == undefined) ? true : o.redirects;
-      url += '/api.php?action=query&format=json' + 
+      url += '/api.php?action=query&format=json&indexpageids' + 
         (redirects ? '&redirects' : '') + qs;
       this.send(url, callback);
     },
@@ -173,6 +173,7 @@ module.exports = (function() {
       console.log('send(): ' + url);
       request.get(url, function(err, res, body) {
         if (err) callback(err);
+        body = JSON.parse(body);
         if (body && body.query) {
           callback('', body);
         } else {
