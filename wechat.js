@@ -1,6 +1,7 @@
 module.exports = (function() {
   var wechat = require('wechat');
   var express = require('express');
+  var _ = require('lodash');
 
   var API = require('./api.js');
   var api = new API();
@@ -33,16 +34,21 @@ module.exports = (function() {
   var WeChat = function(config) {
     if (!config) return;
     if (!config.name || !config.wechat) return;
+    var wechat_required = _.every(['token', 'appid', 'encodingAESKey'], function(n) {
+      return _.has(config.wechat, n);
+    });
+    if (!wechat_required) return;
+
     this.conf = config;
     this.app = express();
-    this.app.use('', wechat(conf.wechat)
-      .text(handlerText)
-      .image(handlerImage)
-      .voice(handlerVoice)
-      .video(handlerVideo)
-      .location(handlerLocation)
-      .link(handlerLink)
-      .event(handlerEvent)
+    this.app.use('', wechat(config.wechat)
+      .text(this.handlerText)
+      .image(this.handlerImage)
+      .voice(this.handlerVoice)
+      .video(this.handlerVideo)
+      .location(this.handlerLocation)
+      .link(this.handlerLink)
+      .event(this.handlerEvent)
       .middlewarify());
   };
   
@@ -90,13 +96,18 @@ module.exports = (function() {
      * hack() will be called at the beginning of handlerText().
      */
     hack: function(msg) {
+      var raw = msg;
+      if (msg == undefined || msg == '') msg = '';
+      else msg = '' + msg;
       var hackInConf = this.conf.hack;
       if (!hackInConf) return msg;
-      if (typeof hackInConf == 'function') return hackInConf(msg);
+      // use *raw* as input instead of processed *msg*, let user define its 
+      // behavior
+      if (typeof hackInConf == 'function') return hackInConf(raw);  
       if (typeof hackInConf == 'object') {
         var hacked = hackInConf[msg];
         if (!hacked) return msg;
-        else return hacked;
+        else return '' + hacked;
       }
     }
   };
