@@ -32,6 +32,7 @@ module.exports = (function() {
    * }
    */
   var WeChat = function(config) {
+    // this.conf
     if (!config) return;
     if (!config.name || !config.wechat) return;
     var wechat_required = _.every(['token', 'appid', 'encodingAESKey'], function(n) {
@@ -40,6 +41,11 @@ module.exports = (function() {
     if (!wechat_required) return;
 
     this.conf = config;
+
+    // init this._keywords_key && this._keywords_func
+    this._keywords_key = [];
+    this._keywords_func = [];
+
     this.app = express();
     this.app.use('', wechat(config.wechat)
       .text(this.handlerText)
@@ -68,8 +74,21 @@ module.exports = (function() {
         // TODO: log
       });
     },
+    /*************************************************************************
+     * Handle different type of requests and give response                   *
+     *************************************************************************/
     /*
-     * Handle different type of requests and give response
+     * Handle text message
+     *
+     * Default behavior of handlerText() will be as followed, 
+     *   1. hack(), translate user's input in order to , e.g., avoid typo, 
+     *      support new keywords without failing legacy ones, etc.
+     *   2. keyword(), handle special keywords returning specific responses. 
+     *      Users can call addKeyword() to add special cases.
+     *      NOTICE: All intercepted keywords will not be passed into post-
+     *              process.
+     *   3. Return detail information of the page queried if user's input get 
+     *      a precise hit; Otherwise, list of search results will be returned.
      */
     handlerText: function(msg, req, res, next) {
      // do hack
@@ -108,6 +127,80 @@ module.exports = (function() {
         var hacked = hackInConf[msg];
         if (!hacked) return msg;
         else return '' + hacked;
+      }
+    },
+    /*
+     * Handle special keyword cases
+     *
+     * *msg*, user's input, required
+
+     * Such special keyword cases will be handled only in functions added by 
+     * addKeyword() and will not be passed to following process. 
+     *
+     * Return response if handled; false otherwise.
+     */
+    keyword: function(msg) {
+      if (!msg && msg != 0) return false;
+      var handled = false;
+      var res = undefined;
+      _.forEach(this._keywords_key, function(key, index) {
+        var func = this._keywords_func[index];
+        if (typeof(key) == 'string') {
+          if (msg == key) {
+            res = func(msg);
+            handled = true;
+            return false;
+          }
+        } else if (key instanceof RegExp) {
+          if (key.test(msg)) {
+            res = func(msg);
+            handled = true;
+            return false;
+          }
+        } else if (typeof(key) == 'function') {
+          if (key(msg)) {
+            res = func(msg);
+            handled = true;
+            return false;
+          }
+        }
+      });
+      if (handled) return res;
+      else return false;
+    },
+    /*
+     * Add keyword listener
+     *
+     * handlerText() will handle special cases of user's input after hack(). 
+     * *key* could be: 
+     * 1. a string, input will be accepted if it equals the string exactly,
+     * 2. a RegExp object, input will be acecepted if it matches the regular 
+     *    expression,
+     * 3. a function, input will be accepted if the function return true using 
+     *    input as its only parameter.
+     * 4. an array, will iterate the array and do addKeyword() for every 
+     *    elements.
+     * *func* is a function which accepts the only parameter, the input message
+     *
+     * Such special keyword cases will be handled only in *func* and will not 
+     * be passed to following process. 
+     */
+    addKeyword: function(key, func) {
+      if (key == undefined || key == null || key == NaN || key == {} 
+        || key == [] || key == '')
+        return;
+      if (key instanceof RegExp || typeof(key) == 'function') {
+        this._keywords_key.push(key);
+        this._keywords_func.push(func);
+      } else if (_.isArray(key)) {
+        var self = this;
+        _.forEach(key, function(k) {
+          self.addKeyword(k, func);
+        });
+      } else {
+        key = '' + key;
+        this._keywords_key.push(key);
+        this._keywords_func.push(func);
       }
     }
   };

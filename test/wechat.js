@@ -74,3 +74,12 @@ describe('hack()', function() {
     wechat.hack('lotr').should.equal('LOTR');
   });
 });
+
+describe('keyword()', function() {
+  it('addKeyword()', function() {
+    // TODO
+  });
+  it('keyword()', function() {
+    // TODO
+  });
+});
