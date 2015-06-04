@@ -85,6 +85,7 @@ var config = {
   }
 };
 var wechat = new WeChat(config);
+var func = function(x) { return x; };
 var clearKeywordTestTrace = function(wechat) {
   _.remove(wechat._keywords_key);
   _.remove(wechat._keywords_func);
@@ -107,7 +108,6 @@ describe('keyword', function() {
       wechat.addKeyword('', func);
       wechat._keywords_key.should.have.length(0);
     });
-    var func = function(x) { return x; };
     it('RegExp or function passed in', function() {
       var r = /^lotr$/;
       wechat.addKeyword(r, func);
@@ -137,6 +137,42 @@ describe('keyword', function() {
   });
 
   describe('keyword()', function() {
-  
+    before(function() {
+      wechat.addKeyword(1, func);
+      wechat.addKeyword('map', func);
+      wechat.addKeyword(/^lotr/, func);
+      wechat.addKeyword(/^abc$/, func);
+      wechat.addKeyword(/777$/, func);
+      wechat.addKeyword(function(msg) {
+        var parsed = parseInt(msg);
+        if (isNaN(parsed) || parsed == 0) return false;
+        else return true;
+      }, func);
+    });
+    it('empty keyword', function() {
+      wechat.keyword().should.equal(false);
+      wechat.keyword('').should.equal(false);
+    });
+    it('string matched keyword', function() {
+      wechat.keyword(1).should.equal(1);
+      wechat.keyword('1').should.equal('1');
+      wechat.keyword('map').should.equal('map');
+    });
+    it('RegExp matched keyword', function() {
+      wechat.keyword('lotr').should.equal('lotr');
+      wechat.keyword('lotr11').should.equal('lotr11');
+      wechat.keyword('abc').should.equal('abc');
+      wechat.keyword('7777').should.equal('7777');
+      wechat.keyword('777').should.equal('777');
+    });
+    it('function matched keyword', function() {
+      wechat.keyword(123).should.equal(123);
+      wechat.keyword('321').should.equal('321');
+    });
+    it('not matched keyword', function() {
+      wechat.keyword(0).should.equal(false);
+      wechat.keyword('abcd').should.equal(false);
+      wechat.keyword('xyz').should.equal(false);
+    });
   });
 });

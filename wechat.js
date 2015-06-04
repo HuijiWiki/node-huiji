@@ -164,7 +164,7 @@ module.exports = (function() {
             return false;
           }
         }
-      });
+      }, this);
       if (handled) return res;
       else return false;
     },
