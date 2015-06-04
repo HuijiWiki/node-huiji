@@ -56,10 +56,14 @@ module.exports = (function() {
       mwapi.query(p, url, function(err, data) {
         if (err) callback(err);
         var pageids = data.query.pageids;
-        var ret = _.map(pageids, function(id) {
-          return data.query.pages[id];
-        });
-        callback('', ret);
+        if (_.isEqual(pageids, [ '-1' ])) {
+          callback('', []);
+        } else {
+          var ret = _.map(pageids, function(id) {
+            return data.query.pages[id];
+          });
+          callback('', ret);
+        }
       });
     }
   };

@@ -12,4 +12,12 @@ describe('details()', function() {
       done();
     });
   });
+  it('no results', function(done) {
+    api.details({
+      titles: ['dummy']
+    }, 'http://lotr.huiji.wiki', function(err, data) {
+      data.length.should.equal(0);
+      done();
+    });
+  });
 });
