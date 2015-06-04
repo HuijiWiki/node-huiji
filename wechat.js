@@ -12,7 +12,7 @@ module.exports = (function() {
    * Parameter *config* is required, defined as {
    *   name, required, name of your wiki site. More precisely, name is the 
    *   first part of the url of your wiki site. E.g., 'lotr' is the name for 
-   *   lotr.huiji.wiki
+   *   http://lotr.huiji.wiki
    *
    *   wechat, a dict, required, credential for your wechat app, defined as {
    *     token, required,
@@ -41,6 +41,7 @@ module.exports = (function() {
     if (!wechat_required) return;
 
     this.conf = config;
+    this.url = this._url();
 
     // init this._keywords_key && this._keywords_func
     this._keywords_key = [];
@@ -59,6 +60,12 @@ module.exports = (function() {
   };
   
   WeChat.prototype = {
+    /*
+     * Get url of the wiki site
+     */
+    _url: function() {
+      return 'http://' + this.config.name + '.huiji.wiki';
+    },
     /*
      * Start wechat server
      *
@@ -91,7 +98,27 @@ module.exports = (function() {
      *      a precise hit; Otherwise, list of search results will be returned.
      */
     handlerText: function(msg, req, res, next) {
-     // do hack
+      // 1. hack()
+      msg = this.hack(msg);
+      // 2. keyword()
+      var handled = this.keyword(msg);
+      if (handled !== false) {
+        res.reply(handled);
+      } else {
+        var hit = api.details({
+          titles: [ msg ]
+        }, this.url, function(err, data) {
+          if (err) {
+            // TODO: HOW TO HANDLE ERROR
+          } else {
+            if (data.length == 0) {
+              // TODO: NO RESULTS, goto SEARCH
+            } else {
+              // TODO: Format a wechat response object
+            }
+          }
+        });
+      }
     },
     handlerImage: function(msg, req, res, next) {
     },
