@@ -1,3 +1,4 @@
+var _ = require('lodash');
 var WeChat = require('../wechat.js');
 var VALID_AESKEY = 'quJ0FSie0l6vp3L2otUMvuwdjLszefK6pm9b8XyBJkn';
 
@@ -75,11 +76,67 @@ describe('hack()', function() {
   });
 });
 
-describe('keyword()', function() {
-  it('addKeyword()', function() {
-    // TODO
+var config = {
+  name: 'lotr', 
+  wechat: {
+    'token': 1,
+    'appid': 2,
+    'encodingAESKey': VALID_AESKEY
+  }
+};
+var wechat = new WeChat(config);
+var clearKeywordTestTrace = function(wechat) {
+  _.remove(wechat._keywords_key);
+  _.remove(wechat._keywords_func);
+};
+
+describe('keyword', function() {
+  describe('addKeyword', function() {
+    it('invalid keyword passed in', function() {
+      var func = function() { };
+      wechat.addKeyword(undefined, func);
+      wechat._keywords_key.should.have.length(0);
+      wechat.addKeyword(null, func);
+      wechat._keywords_key.should.have.length(0);
+      wechat.addKeyword(NaN, func);
+      wechat._keywords_key.should.have.length(0);
+      wechat.addKeyword({}, func);
+      wechat._keywords_key.should.have.length(0);
+      wechat.addKeyword([], func);
+      wechat._keywords_key.should.have.length(0);
+      wechat.addKeyword('', func);
+      wechat._keywords_key.should.have.length(0);
+    });
+    var func = function(x) { return x; };
+    it('RegExp or function passed in', function() {
+      var r = /^lotr$/;
+      wechat.addKeyword(r, func);
+      wechat._keywords_key.should.have.length(1);
+      wechat._keywords_func[0]('echo').should.equal('echo');
+      wechat.addKeyword(func, func);
+      wechat._keywords_key.should.have.length(2);
+      wechat._keywords_func[1]('echo').should.equal('echo');
+      clearKeywordTestTrace(wechat);
+    });
+    it('string passed in', function() {
+      wechat.addKeyword('lotr', func);
+      wechat._keywords_key.should.have.length(1);
+      wechat._keywords_func[0]('echo').should.equal('echo');
+      wechat.addKeyword(777, func);
+      wechat._keywords_key.should.have.length(2);
+      wechat._keywords_func[1]('echo').should.equal('echo');
+      clearKeywordTestTrace(wechat);
+    });
+    it('Array passed in', function() {
+      var arr = [ 1453, func, undefined, NaN, 'huiji', /^地图/ ];
+      wechat.addKeyword(arr, func);
+      wechat._keywords_key.should.have.length(4);
+      wechat._keywords_func[1]('echo').should.equal('echo');
+      clearKeywordTestTrace(wechat);      
+    });
   });
-  it('keyword()', function() {
-    // TODO
+
+  describe('keyword()', function() {
+  
   });
 });

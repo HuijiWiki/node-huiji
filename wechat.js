@@ -186,7 +186,7 @@ module.exports = (function() {
      * be passed to following process. 
      */
     addKeyword: function(key, func) {
-      if (key == undefined || key == null || key == NaN || key == {} 
+      if (key == undefined || key == null || _.isNaN(key) || _.isEqual(key, {})
         || key == [] || key == '')
         return;
       if (key instanceof RegExp || typeof(key) == 'function') {
