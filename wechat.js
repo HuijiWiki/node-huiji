@@ -64,7 +64,7 @@ module.exports = (function() {
      * Get url of the wiki site
      */
     _url: function() {
-      return 'http://' + this.config.name + '.huiji.wiki';
+      return 'http://' + this.conf.name + '.huiji.wiki';
     },
     /*
      * Start wechat server
@@ -110,6 +110,7 @@ module.exports = (function() {
         }, this.url, function(err, data) {
           if (err) {
             // TODO: HOW TO HANDLE ERROR
+            console.log(err);
           } else {
             if (data.length == 0) {
               // TODO: NO RESULTS, goto SEARCH

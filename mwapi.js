@@ -6,6 +6,7 @@ module.exports = (function() {
   };
   
   MWAPI.prototype = {
+    /*******************************Query: prop*******************************/
     /*
      * Generate part of url to get extracts of pages using parameters in *o*
      *
@@ -16,7 +17,6 @@ module.exports = (function() {
      *   exchars, int, optional, not used by default,
      *   explaintext, true or false, optional, true by default,
      *   exsectionformat, string ([plain|wiki]), optional, 'plain' by default,
-     *   exvariant, string, optional, not used by default.
      * }
      *
      * Will generate api GET url for prop=extracts, using following default
@@ -28,9 +28,10 @@ module.exports = (function() {
      *   excontinue, no use,
      *   exvariant, no use.
      * }
+     * However, one is still able to use exchars or exsentences by overriding 
+     * them in *o*.
      *
-     * However, one can override these parameters by passing different values 
-     * into *o*.
+     * For more details, check https://www.mediawiki.org/wiki/Extension:TextExtracts#API
      *
      * Return query string used by prop=extracts, e.g.,
      *   &exlimit=10&exintro=&explaintext=&exsectionformat=plain
@@ -44,15 +45,13 @@ module.exports = (function() {
       var exchars = (!exintro && !exsentences) ? o.exchars : undefined; 
       var explaintext = (o.explaintext == undefined) ? true : o.explaintext;
       var exsectionformat = o.exsectionformat || 'plain';
-      var exvariant = o.exvariant;
       var raw = {
         'exlimit': exlimit,
         'exintro': (exintro ? '' : undefined),
         'exsentences': exsentences,
         'exchars': exchars,
         'explaintext': (explaintext ? '' : undefined),
-        'exsectionformat': exsectionformat,
-        'exvariant': exvariant
+        'exsectionformat': exsectionformat
       };
       var params = _.reduce(raw, function(res, v, k) {
         if (v != undefined) res[k] = v;
@@ -79,8 +78,8 @@ module.exports = (function() {
      *   picontinue, no use.
      * }
      *
-     * However, one can override these parameters by passing different values 
-     * into *o*.
+     * For more details, check http://home.huiji.wiki/api.php prop=pageimages 
+     * section
      *
      * Return query string used by prop=pageimages, e.g.,
      *   &pilimit=20&pithumbsize=320
@@ -92,21 +91,84 @@ module.exports = (function() {
       var pithumbsize = o.pithumbsize || 50;
       return '&pilimit=' + pilimit + '&pithumbsize=' + pithumbsize;
     },
+    /*******************************Query: list*******************************/
     /*
-     * Generate query string for prop
+     * Generate part of url to search using parameters in *o*
      *
-     * Parameter *o*, a dict where key is a valid property and value is an 
-     *   array of parameters for the key 
+     * Parameter *o*, required, defined as {
+     *   srsearch, required, keyword to search,
+     *   srwhat, optional, 3 available values: 
+     *     'title', search in title,
+     *     'text', search in text,
+     *     'nearmatch', search in title via exact matching,
+     *     'title' by default
+     *   srlimit, optinal, numbers of searching result, no more than 50, 10 
+     *   by default
+     * }
+     *
+     * Will generate api GET url for list=search, using following parameters:
+     *   srsearch, required,
+     *   srnamespace, no use,
+     *   srwhat, 'title' by default,
+     *   srinfo, no use,
+     *   srprop, no use,
+     *   sroffset, no use,
+     *   srlimit, no more than 50, 10 by default,
+     *   srinterwiki, no use.
+     * }
+     *
+     * For more details, check https://www.mediawiki.org/wiki/API:Search
+     *
+     * Return query string used by list=search, e.g., 
+     *   &srsearch=巴金斯&srwhat=text&srlimit=10
      */
-    prop: function(o) {
+    search: function(o) {
       if (_.isEmpty(o)) return '';
-      var qs = '&prop=' + _.keysIn(o).join('|');
+      if (!o.srsearch) return '';
+      var srwhat = o.srwhat || 'title';
+      if (_.indexOf(['title', 'text', 'nearmatch'], srwhat) < 0) 
+        srwhat = 'title';
+      var srlimit = o.srlimit || 10;
+      srlimit = (srlimit > 50) ? 50 : (srlimit < 1 ? 1 : srlimit);
+      return '&srsearch=' + o.srsearch + '&srwhat=' + srwhat 
+        + '&srlimit=' + srlimit;
+    },
+    /*
+     * Generate query string for prop, list and meta
+     *
+     * *type* is the type of the query. The only 3 valid values are prop, 
+     * list and meta.
+     * *o* is a dict where key is a valid module and value is 
+     * parameters for such module.
+     */
+    _query: function(type, o) {
+      if (!type || _.indexOf(['prop', 'list', 'meta'], type) < 0) return '';
+      if (_.isEmpty(o)) return '';
+      var qs = '&' + type + '=' + _.keysIn(o).join('|');
       var that = this;
       return _.reduce(o, function(res, v, k) {
         var func = that[k];
         if (func) res += func(v);
         return res;
       }, qs);
+    },
+    /*
+     * Generate query string for Query: prop
+     *
+     * *o* is a dict where key is a valid module and value is 
+     * parameters for such module.
+     */
+    prop: function(o) {
+      return this._query('prop', o);
+    },
+    /*
+     * Generate query string for Query: list
+     *
+     * *o* is a dict where key is a valid module and value is 
+     * parameters for such module.
+     */
+    list: function(o) {
+      return this._query('list', o);
     },
     /*
      * Call action=query mediawiki api. 

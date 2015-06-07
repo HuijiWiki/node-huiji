@@ -26,9 +26,8 @@ describe('extracts()', function() {
     o.chars = 500;
     o.explaintext = false;
     o.exsectionformat = 'wiki';
-    o.exvariant = 'en';
     mwapi.extracts(o).should.equal(
-      '&exlimit=10&exsentences=5&exsectionformat=wiki&exvariant=en');
+      '&exlimit=10&exsentences=5&exsectionformat=wiki');
   });
 });
 
