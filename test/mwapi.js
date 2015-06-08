@@ -69,6 +69,23 @@ describe('prop()', function() {
   });
 });
 
+describe('search()', function() {
+  it('when o is empty', function() {
+    mwapi.search(undefined).should.equal('');
+    mwapi.search({}).should.equal('');
+  });
+  it('with params', function() {
+    var o = {};
+    o.srwhat = 'text';
+    mwapi.search(o).should.equal('');
+    o.srsearch = '芬威';
+    mwapi.search(o).should.equal('&srsearch=芬威&srwhat=text&srlimit=10');
+    delete o.srwhat;
+    o.srlimit = 20;
+    mwapi.search(o).should.equal('&srsearch=芬威&srwhat=title&srlimit=20');
+  });
+});
+
 describe('query()', function() {
   it('when o is empty', function() {
     mwapi.query(undefined).should.equal('');
