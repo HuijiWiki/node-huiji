@@ -14,7 +14,7 @@ module.exports = (function() {
     /*
      * Get detail information about pages with the given titles
      *
-     * Will call MWAPI.query().
+     * Will call MWAPI.query(), prop, extracts|pageimages.
      *
      * Parameter *o*, required, defined as {
      *   titles, required, array of titles of pages queried, should not be 
@@ -71,10 +71,46 @@ module.exports = (function() {
       });
     },
     /*
+     * Search with a given keyword
      *
+     * Will call MWAPI.query(), list, search.
+     *
+     * Parameter *o*, required, defined as {
+     *   key, string, required, the keyword to search,
+     *   limit, int, optional, length of searching results, 10 by default, no 
+     *   more than 50,
+     *   target, string, optional, the target to search, available values are: 
+     *     title, pages matched if their titles contain the keyword,
+     *     text, pages matched if their text contain the keyword,
+     *     default, first match title then match text until *limit* results 
+     *     are collected.
+     * }
+     *
+     * *callback*(err, data)
+     *
+     * Return array of titles of result pages
      */
     search: function(o, callback) {
-
+      if (!o) callback('search(): parameter o NOT FOUND.');
+      if (!o.key) callback('search(): parameter o.key NOT FOUND.');
+      var limit = o.limit || 10;
+      limit = (limit > 50) ? 50 : (limit < 1 ? 1 : limit);
+      var target = o.target || 'default';
+      if (['title', 'text', 'default'].indexOf(target) < 0) target = 'default';
+      var p = {};
+      p.list = {
+        search: {
+          srsearch: o.key,
+          srwhat: (target == 'text' ? 'text': 'title'),
+          srlimit: limit
+        }
+      };
+      var url = this.url;
+      if (!url) return mwapi.query(p);
+      mwapi.query(p, url, function(err, data) {
+        if (err) callback(err);
+        // TODO
+      });
     }
   };
   
