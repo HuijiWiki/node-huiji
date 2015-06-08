@@ -3,12 +3,16 @@ module.exports = (function() {
   var MWAPI = require('./mwapi.js');
   var mwapi = new MWAPI();
   
-  var API = function() {
+  /*
+   * *url*, url of wiki queried, optional, e.g., 'http://lotr.huiji.wiki'
+   */
+  var API = function(url) {
+    this.url = url;
   };
   
   API.prototype = {
     /*
-     * Get detail information about pages with the given *titles*
+     * Get detail information about pages with the given titles
      *
      * Will call MWAPI.query().
      *
@@ -20,7 +24,6 @@ module.exports = (function() {
      *   size, optional, size of thumbnails, 200 by default
      * }
      *
-     * *url*, url of wiki queried, optional, e.g., 'http://lotr.huiji.wiki'
      * *callback*(err, data)
      *
      * Return array of such objects, {
@@ -35,7 +38,7 @@ module.exports = (function() {
      *   pageimage, filename of thumbnail,
      * }
      */
-    details: function(o, url, callback) {
+    details: function(o, callback) {
       if (!o) callback('details(): parameter o NOT FOUND.');
       if (!o.titles) callback('details(): o.titles NOT FOUND.');
       var p = {};
@@ -52,6 +55,7 @@ module.exports = (function() {
           pithumbsize: (o.size || 200)
         }
       };
+      var url = this.url;
       if (!url) return mwapi.query(p);
       mwapi.query(p, url, function(err, data) {
         if (err) callback(err);
@@ -65,6 +69,12 @@ module.exports = (function() {
           callback('', ret);
         }
       });
+    },
+    /*
+     *
+     */
+    search: function(o, callback) {
+
     }
   };
   

@@ -178,14 +178,17 @@ module.exports = (function() {
      *   pageids, array of pageids of pages queried, be careful of its length,
      *   (priority: titles > pageids, only one of them will be used)
      *
-     *   prop, a dict where key is a valid property and value is an array of 
-     *   parameters for the key prop,
+     *   prop, a dict where key is a valid property module and value is its 
+     *   parameters,
      *
-     *   list, a dict where key is a valid list and value is an array of 
-     *   parameters for the key list,
+     *   list, a dict where key is a valid list module and value is its 
+     *   parameters,
      *
-     *   generator, a dict where key is a valid generator and value is an 
-     *   array of parameters for the key generator,
+     *   generator, a dict where key is a valid generator and value is its 
+     *   parameters,
+     *
+     *   generator could be used along with prop, but list could only be used 
+     *   alone. So you should set either list or prop, not both. list is prior.
      *
      *   redirects, true or false, optional, true by default,
      *
@@ -207,17 +210,23 @@ module.exports = (function() {
      */
     query: function(o, url, callback) {
       if (_.isEmpty(o)) return '';
-      var titles = o.titles || [];
-      var pageids = o.pageids || [];
       var qs = '';
-      if (!_.isEmpty(titles)) {
-        qs += '&titles=' + titles.join('|');
-      } else if (!_.isEmpty(pageids)) {
-        qs += '&pageids=' + pageids.join('|');
-      }
-      // Currently, prop() only
-      if (!_.isEmpty(o.prop)) {
-        qs += this.prop(o.prop);
+      if (o.list) {
+        // list
+        qs += this.list(o.list);
+      } else {
+        // prop, TODO: generator
+        var titles = o.titles || [];
+        var pageids = o.pageids || [];
+        if (!_.isEmpty(titles)) {
+          qs += '&titles=' + titles.join('|');
+        } else if (!_.isEmpty(pageids)) {
+          qs += '&pageids=' + pageids.join('|');
+        }
+        // Currently, prop() only
+        if (!_.isEmpty(o.prop)) {
+          qs += this.prop(o.prop);
+        }
       }
       if (!url || !callback) return qs;
       
