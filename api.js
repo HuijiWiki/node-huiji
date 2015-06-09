@@ -84,11 +84,14 @@ module.exports = (function() {
      *     text, pages matched if their text contain the keyword,
      *     default, first match title then match text until *limit* results 
      *     are collected.
+     *   TODO:
+     *   sort,
+     *   quality
      * }
      *
      * *callback*(err, data)
      *
-     * Return array of titles of result pages
+     * Return array of titles of result pages, 
      */
     search: function(o, callback) {
       if (!o) callback('search(): parameter o NOT FOUND.');
@@ -109,7 +112,32 @@ module.exports = (function() {
       if (!url) return mwapi.query(p);
       mwapi.query(p, url, function(err, data) {
         if (err) callback(err);
-        // TODO
+        // TODO: sort
+        var totalhits = data.query.searchinfo.totalhits;
+        if (target != 'default') {
+          if (totalhits == 0) {
+            callback('', []);
+          } else {
+            // TODO: sort
+            callback('', _.pluck(data.query.search, 'title'));
+          }
+        } else {
+          if (totalhits < limit) {
+            var res_title = _.pluck(data.query.search, 'title');
+            p.list.search.srwhat = 'text';
+            mwapi.query(p, url, function(err, data) {
+              if (err) callback(err);
+              var totalhits = data.query.searchinfo.totalhit;
+              if (totalhits == 0) {
+                callback('', res);
+              } else {
+                var res_text = _.pluck(data.query.search, 'title');
+                var res = _.union(res_title, res_text);
+                callback('', res);
+              }
+            });
+          }
+        }
       });
     }
   };
