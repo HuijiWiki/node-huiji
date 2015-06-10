@@ -56,7 +56,7 @@ module.exports = (function() {
         }
       };
       var url = this.url;
-      if (!url) return mwapi.query(p);
+      if (!url || !callback) return mwapi.query(p);
       mwapi.query(p, url, function(err, data) {
         if (err) callback(err);
         var pageids = data.query.pageids;
@@ -109,7 +109,7 @@ module.exports = (function() {
         }
       };
       var url = this.url;
-      if (!url) return mwapi.query(p);
+      if (!url || !callback) return mwapi.query(p);
       mwapi.query(p, url, function(err, data) {
         if (err) callback(err);
         // TODO: sort
