@@ -112,32 +112,20 @@ module.exports = (function() {
       if (!url || !callback) return mwapi.query(p);
       mwapi.query(p, url, function(err, data) {
         if (err) callback(err);
-        // TODO: sort
-        var totalhits = data.query.searchinfo.totalhits;
-        if (target != 'default') {
-          if (totalhits == 0) {
-            callback('', []);
-          } else {
-            // TODO: sort
-            callback('', _.pluck(data.query.search, 'title'));
-          }
-        } else {
-          if (totalhits < limit) {
-            var res_title = _.pluck(data.query.search, 'title');
-            p.list.search.srwhat = 'text';
-            mwapi.query(p, url, function(err, data) {
-              if (err) callback(err);
-              var totalhits = data.query.searchinfo.totalhit;
-              if (totalhits == 0) {
-                callback('', res);
-              } else {
-                var res_text = _.pluck(data.query.search, 'title');
-                var res = _.union(res_title, res_text);
-                callback('', res);
-              }
-            });
-          }
-        }
+        var res = _.pluck(data.query.search, 'title');  //  TODO: sort
+        if (target != 'default') return callback('', res);
+        // Handle target == 'default' case
+        var lenTitle = res.length;
+        if (lenTitle >= limit) return callback('', res);
+        // Do another search with target == 'text', try best to get up to 
+        // *limit* results.
+        p.list.search.srwhat = 'text';
+        mwapi.query(p, url, function(err, data) {
+          if (err) callback(err);
+          var resText = _.pluck(data.query.search, 'title');  //  TODO: sort
+          res = _.union(res, resText);
+          callback('', res);
+        });
       });
     }
   };
