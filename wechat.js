@@ -61,12 +61,6 @@ module.exports = (function() {
   
   WeChat.prototype = {
     /*
-     * Get url of the wiki site
-     */
-    _url: function() {
-      return 'http://' + this.conf.name + '.huiji.wiki';
-    },
-    /*
      * Start wechat server
      *
      * *port*, which port to listen to, optinal. If not set, will look up 
@@ -98,6 +92,7 @@ module.exports = (function() {
      *      a precise hit; Otherwise, list of search results will be returned.
      */
     handlerText: function(msg, req, res, next) {
+      var self = this;
       // 1. hack()
       msg = this.hack(msg);
       // 2. keyword()
@@ -105,17 +100,49 @@ module.exports = (function() {
       if (handled !== false) {
         res.reply(handled);
       } else {
-        var hit = api.details({
-          titles: [ msg ]
-        }, this.url, function(err, data) {
+        api.details({
+          titles: [ msg ],
+          // A sole message-with-pic requires a 320px-wide picture
+          size: 320
+        }, self.url, function(err, data) {
           if (err) {
             // TODO: HOW TO HANDLE ERROR
             console.log(err);
           } else {
             if (data.length == 0) {
               // TODO: NO RESULTS, goto SEARCH
+              api.search({
+                key: msg,
+                limit: 10,  //  TODO: could be configured
+                target: 'default',  //  TODO: could be configured, or not...
+              }, self.url, function(err, data) {
+                if (err) {
+                  console.log(err);
+                } else {
+                  if (data.length == 0) {
+                    // TODO: return a default NO-RESULT message
+                  } else {
+                    // Get details of these result pages
+                    api.details({
+                      titles: data,
+                      // TODO: size == 320 or one more API call?
+                      size: 320
+                    }, self.url, function(err, data) {
+                      if (err) {
+                        console.log(err);
+                      } else {
+                        res.reply(_.map(data, function(detail) {
+                          return self._single(detail);
+                        }));
+                      }
+                    });
+                  }
+                }
+              });
             } else {
-              // TODO: Format a wechat response object
+              res.reply([
+                this._single(data[0])
+              ]);
             }
           }
         });
@@ -230,6 +257,32 @@ module.exports = (function() {
         this._keywords_key.push(key);
         this._keywords_func.push(func);
       }
+    },
+    /*
+     * Get url of the wiki site
+     */
+    _url: function() {
+      return 'http://' + this.conf.name + '.huiji.wiki';
+    },
+    /*
+     * Get page url on the wiki site
+     */
+    _page_url: function(title) {
+      var base = this.url || this._url();
+      return base + '/wiki/' + title;
+    },
+    /*
+     * Form wechat single message according to the result returned by API
+     */
+    _single: function(res) {
+      return {
+        title: res.title,
+        description: res.extract,
+        url: this._page_url(res.title),
+        picurl: res.thumbnail.source  //  TODO: if no thumbnail exists, a 
+                                      //  default pic should be returned. It 
+                                      //  should be able to be configured.
+      };
     }
   };
   

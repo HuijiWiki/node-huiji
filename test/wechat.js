@@ -176,3 +176,7 @@ describe('keyword', function() {
     });
   });
 });
+
+describe('handleText', function() {
+  // TODO
+});
