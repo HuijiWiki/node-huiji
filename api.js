@@ -2,12 +2,14 @@ module.exports = (function() {
   var _ = require('lodash');
   var MWAPI = require('./mwapi.js');
   var mwapi = new MWAPI();
+  var self = null; // point to API itself
   
   /*
    * *url*, url of wiki queried, optional, e.g., 'http://lotr.huiji.wiki'
    */
   var API = function(url) {
     this.url = url;
+    self = this;
   };
   
   API.prototype = {
@@ -55,7 +57,7 @@ module.exports = (function() {
           pithumbsize: (o.size || 200)
         }
       };
-      var url = this.url;
+      var url = self.url;
       if (!url || !callback) return mwapi.query(p);
       mwapi.query(p, url, function(err, data) {
         if (err) callback(err);
@@ -108,7 +110,7 @@ module.exports = (function() {
           srlimit: limit
         }
       };
-      var url = this.url;
+      var url = self.url;
       if (!url || !callback) return mwapi.query(p);
       mwapi.query(p, url, function(err, data) {
         if (err) callback(err);

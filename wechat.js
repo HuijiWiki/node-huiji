@@ -4,7 +4,8 @@ module.exports = (function() {
   var _ = require('lodash');
 
   var API = require('./api.js');
-  var api = new API();
+  var api = null;		// API caller
+  var self = null;	// point to WeChat itself
 
   /*
    * Base class for all WeChat server-side applications serving wikis on huiji
@@ -42,12 +43,14 @@ module.exports = (function() {
 
     this.conf = config;
     this.url = this._url();
+    api = new API(this.url);
 
     // init this._keywords_key && this._keywords_func
     this._keywords_key = [];
     this._keywords_func = [];
 
     this.app = express();
+    this.app.parent = this; // set parent to app
     this.app.use('', wechat(config.wechat)
       .text(this.handlerText)
       .image(this.handlerImage)
@@ -57,6 +60,7 @@ module.exports = (function() {
       .link(this.handlerLink)
       .event(this.handlerEvent)
       .middlewarify());
+    self = this;
   };
   
   WeChat.prototype = {
@@ -68,8 +72,9 @@ module.exports = (function() {
      */
     start: function(port) {
       var port = port || this.conf.port || 80;
-      var server = app.listen(port, function() {
+      var server = this.app.listen(port, function() {
         // TODO: log
+        console.log("WeChat server for %s starts...", self.url);
       });
       server.on('error', function(err) {
         // TODO: log
@@ -92,19 +97,20 @@ module.exports = (function() {
      *      a precise hit; Otherwise, list of search results will be returned.
      */
     handlerText: function(msg, req, res, next) {
-      var self = this;
+      var text = msg.Content || '';
+      console.log("Text message recv: %s", text);
       // 1. hack()
-      msg = this.hack(msg);
+      text = self.hack(text);
       // 2. keyword()
-      var handled = this.keyword(msg);
+      var handled = self.keyword(text);
       if (handled !== false) {
         res.reply(handled);
       } else {
         api.details({
-          titles: [ msg ],
+          titles: [ text ],
           // A sole message-with-pic requires a 320px-wide picture
           size: 320
-        }, self.url, function(err, data) {
+        }, function(err, data) {
           if (err) {
             // TODO: HOW TO HANDLE ERROR
             console.log(err);
@@ -112,10 +118,10 @@ module.exports = (function() {
             if (data.length == 0) {
               // TODO: NO RESULTS, goto SEARCH
               api.search({
-                key: msg,
+                key: text,
                 limit: 10,  //  TODO: could be configured
                 target: 'default',  //  TODO: could be configured, or not...
-              }, self.url, function(err, data) {
+              }, function(err, data) {
                 if (err) {
                   console.log(err);
                 } else {
@@ -127,7 +133,7 @@ module.exports = (function() {
                       titles: data,
                       // TODO: size == 320 or one more API call?
                       size: 320
-                    }, self.url, function(err, data) {
+                    }, function(err, data) {
                       if (err) {
                         console.log(err);
                       } else {
@@ -141,7 +147,7 @@ module.exports = (function() {
               });
             } else {
               res.reply([
-                this._single(data[0])
+                self._single(data[0])
               ]);
             }
           }
@@ -275,13 +281,19 @@ module.exports = (function() {
      * Form wechat single message according to the result returned by API
      */
     _single: function(res) {
+      // handle thumbnail
+      var picurl = '';
+      // TODO: further process to thumbnail according to its size
+      if (!res.thumbnail) {
+        // TODO: if no thumbnail exists, a default pic should be returned.
+      } else {
+        picurl = res.thumbnail.source;
+      }
       return {
         title: res.title,
         description: res.extract,
         url: this._page_url(res.title),
-        picurl: res.thumbnail.source  //  TODO: if no thumbnail exists, a 
-                                      //  default pic should be returned. It 
-                                      //  should be able to be configured.
+        picurl: picurl
       };
     }
   };
