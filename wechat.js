@@ -45,6 +45,9 @@ module.exports = (function() {
     this.url = this._url();
     api = new API(this.url);
 
+    this._hack_key = [];
+    this._hack_value = [];
+    this.conf.hack && this.addHack(this.conf.hack);
     // init this._keywords_key && this._keywords_func
     this._keywords_key = [];
     this._keywords_func = [];
@@ -175,7 +178,7 @@ module.exports = (function() {
      *
      * hack() will be called at the beginning of handlerText().
      */
-    hack: function(msg) {
+    hack_deprecated: function(msg) {
       var raw = msg;
       if (msg == undefined || msg == '') msg = '';
       else msg = '' + msg;
@@ -188,6 +191,65 @@ module.exports = (function() {
         var hacked = hackInConf[msg];
         if (!hacked) return msg;
         else return '' + hacked;
+      }
+    },
+    hack: function(msg) {
+      var raw = msg;
+      if (msg == undefined || msg == '') msg = '';
+      else msg = '' + msg;
+      var hacked = false;
+      var res = undefined;
+      _.forEach(self._hack_key, function(key, index) {
+        var value = self._hack_value[index];
+        if (typeof(key) == 'string') {
+          if (msg == key) {
+            res = value;
+            hacked = true;
+            return false;
+          }
+        } else if (key instanceof RegExp) {
+          if (key.test(msg)) {
+            res = value;
+            hacked = true;
+            return false;
+          }
+        } else if (typeof(key) == 'function') {
+          if (key(msg)) {
+            res = value;
+            hacked = true;
+            return false;
+          }
+        }
+      });
+      if (hacked) return res;
+      else return msg;
+    },
+    addHack: function(key, value) {
+      if (key == undefined || key == null || _.isNaN(key) || _.isEqual(key, {})
+        || key== [] || key == '')
+        return;
+      if (key instanceof RegExp || typeof(key) == 'function') {
+        this._hack_key.push(key);
+        this._hack_value.push(value);
+      } else if (_.isArray(key)) {
+        if (value === undefined) {
+          _.forEach(key, function(k) {
+            self.addHack(k.key, k.value);
+          });
+        } else {
+          _.forEach(key, function(k) {
+            self.addHack(k, value);
+          });
+        }
+      } else if (typeof(key) == 'object') {
+        _.forEach(key, function(v, k) {
+          self._hack_key.push(k);
+          self._hack_value.push(v);
+        });
+      } else {
+        key = '' + key;
+        this._hack_key.push(key);
+        this._hack_value.push(value);
       }
     },
     /*
