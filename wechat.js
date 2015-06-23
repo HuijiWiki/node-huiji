@@ -6,6 +6,13 @@ module.exports = (function() {
   var API = require('./api.js');
   var api = null;		// API caller
   var self = null;	// point to WeChat itself
+  var default_conf = {
+    port: 80,
+    CONST: {
+      ERR: '啊啦，服务器傲娇啦~~~~(>_<)~~~~ 。请稍后重试~！',
+      NO_RESULT: '抱歉，暂未找到相关词条，不妨试试其他关键词~？'
+    }
+  };
 
   /*
    * Base class for all WeChat server-side applications serving wikis on huiji
@@ -33,7 +40,15 @@ module.exports = (function() {
    * }
    */
   var WeChat = function(config) {
-    // this.conf
+    /*
+     * *config* is required, 
+     *   config.name,
+     *   config.wechat,
+     *   config.wechat.token,
+     *   config.wechat.appid,
+     *   config.wechat.encodingAESKey
+     * All of the above are required.
+     */
     if (!config) return;
     if (!config.name || !config.wechat) return;
     var wechat_required = _.every(['token', 'appid', 'encodingAESKey'], function(n) {
@@ -41,7 +56,9 @@ module.exports = (function() {
     });
     if (!wechat_required) return;
 
-    this.conf = config;
+    this.conf = default_conf;
+    _.assign(this.conf, config);
+    
     this.url = this._url();
     api = new API(this.url);
 
@@ -115,11 +132,12 @@ module.exports = (function() {
           size: 320
         }, function(err, data) {
           if (err) {
-            // TODO: HOW TO HANDLE ERROR
             console.log(err);
+            res.reply(self._respond_err());
           } else {
             if (data.length == 0) {
-              // TODO: NO RESULTS, goto SEARCH
+              // Message is not a precise title of any page. 
+              // Try search.
               api.search({
                 key: text,
                 limit: 10,  //  TODO: could be configured
@@ -127,9 +145,10 @@ module.exports = (function() {
               }, function(err, data) {
                 if (err) {
                   console.log(err);
+                  res.reply(self._respond_err());
                 } else {
                   if (data.length == 0) {
-                    // TODO: return a default NO-RESULT message
+                    res.reply(self._respond_no_result());
                   } else {
                     // Get details of these result pages
                     api.details({
@@ -139,6 +158,7 @@ module.exports = (function() {
                     }, function(err, data) {
                       if (err) {
                         console.log(err);
+                        res.reply(self._respond_err());
                       } else {
                         res.reply(_.map(data, function(detail) {
                           return self._single(detail);
@@ -338,6 +358,22 @@ module.exports = (function() {
     _page_url: function(title) {
       var base = this.url || this._url();
       return base + '/wiki/' + title;
+    },
+    /*
+     * Default respond when an error occurs
+     * Return any response that can be passed to res.reply()
+     * self.conf.CONST.ERR is returned by default
+     */
+    _respond_err: function() {
+      return self.conf.CONST.ERR;
+    },
+    /*
+     * Default respond when no results are found
+     * Return any response that can be passed to res.reply()
+     * self.conf.CONST.NO_RESULT is returned by default
+     */
+    _respond_no_result: function() {
+      return self.conf.CONST.NO_RESULT;
     },
     /*
      * Form wechat single message according to the result returned by API
