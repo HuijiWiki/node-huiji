@@ -44,9 +44,8 @@ module.exports = (function() {
       if (!o) return callback('details(): parameter o NOT FOUND.');
       if (!o.titles) return callback('details(): o.titles NOT FOUND.');
       var p = {};
-      var len = o.titles.length;
-      p.titles = (len > 20) ? _.dropRight(o.titles, len - 20) : o.titles;
-      len = p.titles.length;
+      p.titles = _.slice(o.titles, 0, 20);
+      var len = p.titles.length;
       p.prop = {
         extracts: {
           exlimit: len,
@@ -126,6 +125,9 @@ module.exports = (function() {
           if (err) return callback(err);
           var resText = _.pluck(data.query.search, 'title');  //  TODO: sort
           res = _.union(res, resText);
+          // If number of the results after union exceeds *limit*, 
+          // drop unneccessary ones.
+          res = _.slice(res, 0, limit);
           return callback('', res);
         });
       });
