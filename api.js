@@ -41,8 +41,8 @@ module.exports = (function() {
      * }
      */
     details: function(o, callback) {
-      if (!o) callback('details(): parameter o NOT FOUND.');
-      if (!o.titles) callback('details(): o.titles NOT FOUND.');
+      if (!o) return callback('details(): parameter o NOT FOUND.');
+      if (!o.titles) return callback('details(): o.titles NOT FOUND.');
       var p = {};
       var len = o.titles.length;
       p.titles = (len > 20) ? _.dropRight(o.titles, len - 20) : o.titles;
@@ -60,15 +60,15 @@ module.exports = (function() {
       var url = self.url;
       if (!url || !callback) return mwapi.query(p);
       mwapi.query(p, url, function(err, data) {
-        if (err) callback(err);
+        if (err) return callback(err);
         var pageids = data.query.pageids;
         if (_.isEqual(pageids, [ '-1' ])) {
-          callback('', []);
+          return callback('', []);
         } else {
           var ret = _.map(pageids, function(id) {
             return data.query.pages[id];
           });
-          callback('', ret);
+          return callback('', ret);
         }
       });
     },
@@ -96,8 +96,8 @@ module.exports = (function() {
      * Return array of titles of result pages, 
      */
     search: function(o, callback) {
-      if (!o) callback('search(): parameter o NOT FOUND.');
-      if (!o.key) callback('search(): parameter o.key NOT FOUND.');
+      if (!o) return callback('search(): parameter o NOT FOUND.');
+      if (!o.key) return callback('search(): parameter o.key NOT FOUND.');
       var limit = o.limit || 10;
       limit = (limit > 50) ? 50 : (limit < 1 ? 1 : limit);
       var target = o.target || 'default';
@@ -113,7 +113,7 @@ module.exports = (function() {
       var url = self.url;
       if (!url || !callback) return mwapi.query(p);
       mwapi.query(p, url, function(err, data) {
-        if (err) callback(err);
+        if (err) return callback(err);
         var res = _.pluck(data.query.search, 'title');  //  TODO: sort
         if (target != 'default') return callback('', res);
         // Handle target == 'default' case
@@ -123,10 +123,10 @@ module.exports = (function() {
         // *limit* results.
         p.list.search.srwhat = 'text';
         mwapi.query(p, url, function(err, data) {
-          if (err) callback(err);
+          if (err) return callback(err);
           var resText = _.pluck(data.query.search, 'title');  //  TODO: sort
           res = _.union(res, resText);
-          callback('', res);
+          return callback('', res);
         });
       });
     }

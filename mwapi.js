@@ -241,15 +241,15 @@ module.exports = (function() {
      * http://lotr.huiji.wiki/api.php?action=query&prop=extracts&exlimit=
      */
     send: function(url, callback) {
-      if (!url) callback('send(): url is empty.');
+      if (!url) return callback('send(): url is empty.');
       console.log('send(): ' + url);
       request.get(url, function(err, res, body) {
-        if (err) callback(err);
+        if (err) return callback(err);
         body = JSON.parse(body);
         if (body && body.query) {
-          callback('', body);
+          return callback('', body);
         } else {
-          callback('send(): No results returned.');
+          return callback('send(): No results returned.');
         }
       });
     }
