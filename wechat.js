@@ -254,7 +254,7 @@ module.exports = (function() {
       } else if (_.isArray(key)) {
         if (value === undefined) {
           _.forEach(key, function(k) {
-            self.addHack(k.key, k.value);
+            self.addHack(k);
           });
         } else {
           _.forEach(key, function(k) {
