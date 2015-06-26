@@ -193,6 +193,8 @@ module.exports = (function() {
      * keywords without failing legacy ones, explicitly redirection 
      * out-of-wiki-site, etc.
      *
+     * *msg*, required, users' input
+     *
      * Users should call addHack() before the wechat server starts. 
      * hack() will lookup _hack_key and return corresponding value in 
      * _hack_value if there is a hit. Otherwise, return what is passed in.
@@ -223,7 +225,10 @@ module.exports = (function() {
           if (ret !== false) return hit(ret);
         }
       });
-      return (hacked) ? res : msg;
+      if (hacked) {
+        console.log('hacked %s => %s', msg, res);
+        return res;
+      } else return msg;
     },
     /*
      * Add hack-case to support hack().
@@ -249,8 +254,8 @@ module.exports = (function() {
         || _.isEqual(key, []) || key == '')
         return;
       if (key instanceof RegExp || typeof(key) == 'function') {
-        this._hack_key.push(key);
-        this._hack_value.push(value);
+        self._hack_key.push(key);
+        self._hack_value.push(value);
       } else if (_.isArray(key)) {
         if (value === undefined) {
           _.forEach(key, function(k) {
@@ -268,16 +273,16 @@ module.exports = (function() {
         });
       } else {
         key = '' + key;
-        this._hack_key.push(key);
-        this._hack_value.push(value);
+        self._hack_key.push(key);
+        self._hack_value.push(value);
       }
     },
     /*
      * Handle special keyword-cases
      *
-     * *msg*, user's input, required
+     * *msg*, required, users' input
 
-     * Such special keyword cases will be handled only in functions added by 
+     * Such special keyword-cases will be handled only in functions added by 
      * addKeyword() and will not be passed to following process. 
      *
      * Return response if handled; false otherwise.
@@ -286,59 +291,64 @@ module.exports = (function() {
       if (!msg && msg != 0) return false;
       var handled = false;
       var res = undefined;
-      _.forEach(this._keywords_key, function(key, index) {
-        var func = this._keywords_func[index];
+
+      function hit(func) {
+        res = func(msg);
+        handled = true;
+        return false;
+      }
+
+      _.forEach(self._keywords_key, function(key, index) {
+        var func = self._keywords_func[index];
         if (typeof(key) == 'string') {
-          if (msg == key) {
-            res = func(msg);
-            handled = true;
-            return false;
-          }
+          if (msg == key) return hit(func);
         } else if (key instanceof RegExp) {
-          if (key.test(msg)) {
-            res = func(msg);
-            handled = true;
-            return false;
-          }
+          if (key.test(msg)) return hit(func);
         } else if (typeof(key) == 'function') {
-          if (key(msg)) {
-            res = func(msg);
-            handled = true;
-            return false;
-          }
+          ret = key(msg);
+          if (ret === true) return hit(func);
+          if (ret !== false) return hit(ret);
         }
-      }, this);
-      if (handled) return res;
-      else return false;
+      });
+      if (handled) {
+        console.log('keyword %s hit.', msg);
+        return res;
+      } else return false;
     },
     /*
-     * Add keyword listener
+     * Add keyword-case to support keyword().
      *
-     * handlerText() will handle special cases of user's input after hack(). 
-     * *key* could be: 
-     * 1. a string, input will be accepted if it equals the string exactly,
-     * 2. a RegExp object, input will be acecepted if it matches the regular 
-     *    expression,
-     * 3. a function, input will be accepted if the function return true using 
-     *    input as its only parameter.
-     * 4. an array, will iterate the array and do addKeyword() for every 
-     *    elements.
-     * *func* is a function which accepts the only parameter, the input message
+     * To provide dynamic keyword functionality (supposed to be rare case), 
+     * the following code is similar to code of addHack(). 
+     * *key* is similar to those for addHack(). However, 
+     * *func* is a function which accepts users' input that produces the 
+     * output and responds to client directly.
      *
-     * Such special keyword cases will be handled only in *func* and will not 
-     * be passed to following process. 
+     * handlerText() will handle keyword-cases after hack(). Those inputs that 
+     * hit a keyword-case will be handled only in corresponding *func* and will 
+     * not be passed to following process. 
      */
     addKeyword: function(key, func) {
       if (key == undefined || key == null || _.isNaN(key) || _.isEqual(key, {})
-        || key == [] || key == '')
+        || _.isEqual(key, []) || key == '')
         return;
       if (key instanceof RegExp || typeof(key) == 'function') {
-        this._keywords_key.push(key);
-        this._keywords_func.push(func);
+        self._keywords_key.push(key);
+        self._keywords_func.push(func);
       } else if (_.isArray(key)) {
-        var self = this;
-        _.forEach(key, function(k) {
-          self.addKeyword(k, func);
+        if (func === undefined) {
+          _.forEach(key, function(k) {
+            self.addKeyword(k.key, k.func);
+          });
+        } else {
+          _.forEach(key, function(k) {
+            self.addKeyword(k, func);
+          });
+        }
+      } else if (typeof(key) == 'object') {
+        _.forEach(key, function(f, k) {
+          self._keywords_key.push(k);
+          self._keywords_func.push(f);
         });
       } else {
         key = '' + key;
