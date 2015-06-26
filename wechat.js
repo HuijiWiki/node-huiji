@@ -32,7 +32,7 @@ module.exports = (function() {
    *   
    *   port, int, optional, indicates which port to be listened. You can pass 
    *   it into start() instead when calling to start the server or just ignore 
-   *   it and a default port 80 will be used instead.
+   *   it and a default port 80 will be used.
    *
    *   hack, a dict or function, optional, will be used to hack user's inputs 
    *   for various reasons. A simple dictionary is ok and a customized 
@@ -62,10 +62,12 @@ module.exports = (function() {
     this.url = this._url();
     api = new API(this.url);
 
+    // used for hack
     this._hack_key = [];
     this._hack_value = [];
     this.conf.hack && this.addHack(this.conf.hack);
-    // init this._keywords_key && this._keywords_func
+
+    // used for keyword
     this._keywords_key = [];
     this._keywords_func = [];
 
@@ -88,7 +90,7 @@ module.exports = (function() {
      * Start wechat server
      *
      * *port*, which port to listen to, optinal. If not set, will look up 
-     * conf.port and if still not set 80 by default.
+     * conf.port and if still not set, 80 by default.
      */
     start: function(port) {
       var port = port || this.conf.port || 80;
@@ -108,9 +110,11 @@ module.exports = (function() {
      *
      * Default behavior of handlerText() will be as followed, 
      *   1. hack(), translate user's input in order to , e.g., avoid typo, 
-     *      support new keywords without failing legacy ones, etc.
+     *      support new keywords without failing legacy ones, explicitly 
+     *      redirection out-of-wiki-site, etc.
+     *      Users should call addHack() to add various hack-cases.
      *   2. keyword(), handle special keywords returning specific responses. 
-     *      Users can call addKeyword() to add special cases.
+     *      Users should call addKeyword() to add various keyword-cases.
      *      NOTICE: All intercepted keywords will not be passed into post-
      *              process.
      *   3. Return detail information of the page queried if user's input get 
@@ -190,63 +194,64 @@ module.exports = (function() {
     handlerEvent: function(msg, req, res, next) {
     },
     /*
-     * Hack the input for various reasons, e.g. user's typo, redirection, ...
+     * Hack users' input for various reasons, e.g. avoid typo, support new 
+     * keywords without failing legacy ones, explicitly redirection 
+     * out-of-wiki-site, etc.
      *
-     * hack() will use this.conf.hack which by default is a dictionary  
-     * to simply translate *msg* to hacked message. One can inherit WeChat and 
-     * override this hack() or just pass a hack() function into configuration.
+     * Users should call addHack() before the wechat server starts. 
+     * hack() will lookup _hack_key and return corresponding value in 
+     * _hack_value if there is a hit. Otherwise, return what is passed in.
      *
-     * hack() will be called at the beginning of handlerText().
+     * By default, hack() will be called at the beginning of handlerText().
      */
-    hack_deprecated: function(msg) {
-      var raw = msg;
-      if (msg == undefined || msg == '') msg = '';
-      else msg = '' + msg;
-      var hackInConf = this.conf.hack;
-      if (!hackInConf) return msg;
-      // use *raw* as input instead of processed *msg*, let user define its 
-      // behavior
-      if (typeof hackInConf == 'function') return hackInConf(raw);  
-      if (typeof hackInConf == 'object') {
-        var hacked = hackInConf[msg];
-        if (!hacked) return msg;
-        else return '' + hacked;
-      }
-    },
     hack: function(msg) {
-      var raw = msg;
       if (msg == undefined || msg == '') msg = '';
       else msg = '' + msg;
       var hacked = false;
       var res = undefined;
+
+      function hit(value) {
+        res = value;
+        hacked = true;
+        return false;
+      }
+
       _.forEach(self._hack_key, function(key, index) {
         var value = self._hack_value[index];
         if (typeof(key) == 'string') {
-          if (msg == key) {
-            res = value;
-            hacked = true;
-            return false;
-          }
+          if (msg == key) return hit(value);
         } else if (key instanceof RegExp) {
-          if (key.test(msg)) {
-            res = value;
-            hacked = true;
-            return false;
-          }
+          if (key.test(msg)) return hit(value);
         } else if (typeof(key) == 'function') {
-          if (key(msg)) {
-            res = value;
-            hacked = true;
-            return false;
-          }
+          ret = key(msg);
+          if (ret === true) return hit(value);
+          if (ret !== false) return hit(ret);
         }
       });
-      if (hacked) return res;
-      else return msg;
+      return (hacked) ? res : msg;
     },
+    /*
+     * Add hack-case to support hack().
+     *
+     * Following types of hack-case are supported, 
+     *   1. <string, string>, e.g., '囧恩' => '琼恩'
+     *   2. <RegExp, string>, e.g., /^囧/ => '琼恩'
+     *   3. <array, string>, e.g., ['囧', '囧恩', '穷恩'] => '琼恩'
+     *   4. <dict object, undefined>, e.g., 
+     *        { '囧': '琼恩', '囧恩': '琼恩' } => undefined (value not used)
+     *   5. <function, string>, users' input will be filtered by function. 
+     *        Those whose return value is true will be hacked; Else not.
+     *        However, this hack-case also support dynamic hacking. If the 
+     *        result of a return is not false and is not true either, use 
+     *        the return value as the hacked result.
+     *   6. <array, undefined>, e.g., 
+     *        [{ 'key': '囧恩', 'value': '琼恩' }] => undefined 
+     *        addHack() every elements in the array. Each element should be an 
+     *        object containing only two fields: key & value.
+     */
     addHack: function(key, value) {
       if (key == undefined || key == null || _.isNaN(key) || _.isEqual(key, {})
-        || key== [] || key == '')
+        || _.isEqual(key, []) || key == '')
         return;
       if (key instanceof RegExp || typeof(key) == 'function') {
         this._hack_key.push(key);
@@ -254,7 +259,7 @@ module.exports = (function() {
       } else if (_.isArray(key)) {
         if (value === undefined) {
           _.forEach(key, function(k) {
-            self.addHack(k);
+            self.addHack(k.key, k.value);
           });
         } else {
           _.forEach(key, function(k) {
@@ -273,7 +278,7 @@ module.exports = (function() {
       }
     },
     /*
-     * Handle special keyword cases
+     * Handle special keyword-cases
      *
      * *msg*, user's input, required
 
