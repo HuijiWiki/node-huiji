@@ -33,10 +33,6 @@ module.exports = (function() {
    *   port, int, optional, indicates which port to be listened. You can pass 
    *   it into start() instead when calling to start the server or just ignore 
    *   it and a default port 80 will be used.
-   *
-   *   hack, a dict or function, optional, will be used to hack user's inputs 
-   *   for various reasons. A simple dictionary is ok and a customized 
-   *   function is also allowed.
    * }
    */
   var WeChat = function(config) {
@@ -65,7 +61,6 @@ module.exports = (function() {
     // used for hack
     this._hack_key = [];
     this._hack_value = [];
-    this.conf.hack && this.addHack(this.conf.hack);
 
     // used for keyword
     this._keywords_key = [];
