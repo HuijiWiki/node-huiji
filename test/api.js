@@ -64,7 +64,7 @@ describe('search()', function() {
         limit: 10,
         target: 'title'
       }, function(err, data) {
-        data.length.should.equal(4);
+        data.length.should.equal(5);
         done();
       });
     });
@@ -84,7 +84,7 @@ describe('search()', function() {
         limit: 10,
         target: 'default'
       }, function(err, data) {
-        data.length.should.equal(14);
+        data.length.should.equal(10);
         done();
       });
     });
@@ -98,7 +98,5 @@ describe('search()', function() {
         done();
       });
     });
-  });
-  describe('with sort', function() {
   });
 });

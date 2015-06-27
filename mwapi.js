@@ -1,3 +1,19 @@
+/*
+ * mwapi.js 
+ *
+ * This module exports MWAPI class which wraps functionalities provided by 
+ * MediaWiki API (version 1.2.5). 
+ * We will add more mediawiki-api-wrapping functions when such function is 
+ * needed in upper layer, that is, api.js. 
+ * For each function, we select its parameters carefully and decide what is 
+ * required, what is optional (which is likely to be used) and what is of no 
+ * usage (no use or might not be used). 
+ *
+ * Currently, following module/submodule in MediaWiki API is wrapped: 
+ *   prop=extracts, 
+ *   prop=pageimages,
+ *   list=search
+ */
 module.exports = (function() {
   var request = require('request');
   var _ = require('lodash');

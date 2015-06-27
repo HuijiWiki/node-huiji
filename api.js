@@ -1,15 +1,26 @@
+/*
+ * api.js
+ *
+ * This module exports API class which take usage of MWAPI module and provides 
+ * various functionalities. It is used by upper components/parts of Huiji, 
+ * such as wechat.js.
+ * We will add more functions when such function is needed in upper layer, 
+ * for example, weibo.js in future.
+ *
+ * Currently, following functions are provided:
+ *   details,
+ *   search
+ */
 module.exports = (function() {
   var _ = require('lodash');
   var MWAPI = require('./mwapi.js');
   var mwapi = new MWAPI();
-  var self = null; // point to API itself
   
   /*
    * *url*, url of wiki queried, optional, e.g., 'http://lotr.huiji.wiki'
    */
   var API = function(url) {
     this.url = url;
-    self = this;
   };
   
   API.prototype = {
@@ -56,7 +67,7 @@ module.exports = (function() {
           pithumbsize: (o.size || 200)
         }
       };
-      var url = self.url;
+      var url = this.url; 
       if (!url || !callback) return mwapi.query(p);
       mwapi.query(p, url, function(err, data) {
         if (err) return callback(err);
@@ -109,7 +120,7 @@ module.exports = (function() {
           srlimit: limit
         }
       };
-      var url = self.url;
+      var url = this.url;
       if (!url || !callback) return mwapi.query(p);
       mwapi.query(p, url, function(err, data) {
         if (err) return callback(err);
