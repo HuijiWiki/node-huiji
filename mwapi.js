@@ -29,12 +29,12 @@ module.exports = (function() {
      * Generate part of url to get extracts of pages using parameters in *o*
      *
      * Parameter *o*, required, defined as {
-     *   exlimit, int, required, not bigger than 20, 1 by default,
-     *   exintro, true or false, optional, true by default,
-     *   exsentences, int, optinal, not used by default,
-     *   exchars, int, optional, not used by default,
-     *   explaintext, true or false, optional, true by default,
-     *   exsectionformat, string ([plain|wiki]), optional, 'plain' by default,
+     *   exlimit, required, int, not bigger than 20, 1 by default,
+     *   exintro, optional, true or false, true by default,
+     *   exsentences, optinal, int, not used by default,
+     *   exchars, optional, int, not used by default,
+     *   explaintext, optional, true or false, true by default,
+     *   exsectionformat, optional, string ([plain|wiki]), 'plain' by default,
      * }
      *
      * Will generate api GET url for prop=extracts, using following default
@@ -84,8 +84,8 @@ module.exports = (function() {
      * Generate part of url to get thumbnails of pages using parameters in *o*
      *
      * Parameter *o*, required, defined as {
-     *   pilimit, int, required, not bigger than 50, 1 by default,
-     *   pithumbsize, int, required, 50 by default,
+     *   pilimit, required, int, not bigger than 50, 1 by default,
+     *   pithumbsize, required, int, 50 by default,
      * }
      *
      * Will generate api GET url for prop=pageimages, using following default
@@ -114,19 +114,21 @@ module.exports = (function() {
      * Generate part of url to search using parameters in *o*
      *
      * Parameter *o*, required, defined as {
-     *   srsearch, required, keyword to search,
-     *   srwhat, optional, 3 available values: 
+     *   srsearch, required, string, keyword to search,
+     *   srwhat, optional, string, 3 available values: 
      *     'title', search in title,
      *     'text', search in text,
      *     'nearmatch', search in title via exact matching,
      *     'title' by default
-     *   srlimit, optinal, numbers of searching result, no more than 50, 10 
-     *   by default
+     *   srnamespace, optional, array of int, search under what namespaces, 
+     *     [0] by default
+     *   srlimit, optinal, int, numbers of searching result, no more than 50, 
+     *   10 by default
      * }
      *
      * Will generate api GET url for list=search, using following parameters:
      *   srsearch, required,
-     *   srnamespace, no use,
+     *   srnamespace, ['0'] by default,
      *   srwhat, 'title' by default,
      *   srinfo, no use,
      *   srprop, no use,
@@ -146,10 +148,11 @@ module.exports = (function() {
       var srwhat = o.srwhat || 'title';
       if (_.indexOf(['title', 'text', 'nearmatch'], srwhat) < 0) 
         srwhat = 'title';
+      var srnamespace = o.srnamespace || [0];
       var srlimit = o.srlimit || 10;
       srlimit = (srlimit > 50) ? 50 : (srlimit < 1 ? 1 : srlimit);
       return '&srsearch=' + o.srsearch + '&srwhat=' + srwhat 
-        + '&srlimit=' + srlimit;
+        + '&srnamespace=' + srnamespace.join('|') + '&srlimit=' + srlimit;
     },
     /*
      * Generate query string for prop, list and meta

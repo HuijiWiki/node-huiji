@@ -79,10 +79,12 @@ describe('search()', function() {
     o.srwhat = 'text';
     mwapi.search(o).should.equal('');
     o.srsearch = '芬威';
-    mwapi.search(o).should.equal('&srsearch=芬威&srwhat=text&srlimit=10');
+    mwapi.search(o).should.equal('&srsearch=芬威&srwhat=text&srnamespace=0&srlimit=10');
     delete o.srwhat;
+    o.srnamespace = [0, 220];
+    mwapi.search(o).should.equal('&srsearch=芬威&srwhat=title&srnamespace=0|220&srlimit=10');
     o.srlimit = 20;
-    mwapi.search(o).should.equal('&srsearch=芬威&srwhat=title&srlimit=20');
+    mwapi.search(o).should.equal('&srsearch=芬威&srwhat=title&srnamespace=0|220&srlimit=20');
   });
 });
 

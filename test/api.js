@@ -37,26 +37,31 @@ describe('search()', function() {
         key: '乔拉',
         limit: 10,
         target: 'title'
-      }).should.equal('&list=search&srsearch=乔拉&srwhat=title&srlimit=10');
+      }).should.equal('&list=search&srsearch=乔拉&srwhat=title&srnamespace=0&srlimit=10');
       api.search({
         key: '乔拉',
         limit: 20,
         target: 'text'
-      }).should.equal('&list=search&srsearch=乔拉&srwhat=text&srlimit=20');
+      }).should.equal('&list=search&srsearch=乔拉&srwhat=text&srnamespace=0&srlimit=20');
       api.search({
         key: '乔拉',
         limit: 10,
         target: 'default'
-      }).should.equal('&list=search&srsearch=乔拉&srwhat=title&srlimit=10');
+      }).should.equal('&list=search&srsearch=乔拉&srwhat=title&srnamespace=0&srlimit=10');
       api.search({
         key: '乔拉',
         limit: 10,
         target: 'ttttt'
-      }).should.equal('&list=search&srsearch=乔拉&srwhat=title&srlimit=10');
+      }).should.equal('&list=search&srsearch=乔拉&srwhat=title&srnamespace=0&srlimit=10');
       api.search({
         key: '乔拉',
         limit: 10
-      }).should.equal('&list=search&srsearch=乔拉&srwhat=title&srlimit=10');
+      }).should.equal('&list=search&srsearch=乔拉&srwhat=title&srnamespace=0&srlimit=10');
+      api.search({
+        key: '乔拉',
+        limit: 10,
+        namespace: [0, 220]
+      }).should.equal('&list=search&srsearch=乔拉&srwhat=title&srnamespace=0|220&srlimit=10');
     });
     it('search title', function(done) {
       api.search({
@@ -85,6 +90,16 @@ describe('search()', function() {
         target: 'default'
       }, function(err, data) {
         data.length.should.equal(10);
+        done();
+      });
+    });
+    it('search multiple namespace', function(done) {
+      api.search({
+        key: '梅葛亚',
+        limit: 10,
+        target: 'title'
+      }, function(err, data) {
+        data.length.should.equal(5);
         done();
       });
     });

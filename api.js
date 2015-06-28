@@ -88,14 +88,16 @@ module.exports = (function() {
      * Will call MWAPI.query(), list, search.
      *
      * Parameter *o*, required, defined as {
-     *   key, string, required, the keyword to search,
-     *   limit, int, optional, length of searching results, 10 by default, no 
+     *   key, required, string, the keyword to search,
+     *   limit, optional, int, length of searching results, 10 by default, no 
      *   more than 50,
-     *   target, string, optional, the target to search, available values are: 
+     *   target, optional, string, the target to search, available values are: 
      *     title, pages matched if their titles contain the keyword,
      *     text, pages matched if their text contain the keyword,
      *     default, first match title then match text until *limit* results 
      *     are collected.
+     *   namespace, optional, array of int, under what namespace to search, 
+     *     [0] by default.
      *   TODO:
      *   sort,
      *   quality
@@ -112,11 +114,13 @@ module.exports = (function() {
       limit = (limit > 50) ? 50 : (limit < 1 ? 1 : limit);
       var target = o.target || 'default';
       if (['title', 'text', 'default'].indexOf(target) < 0) target = 'default';
+      var namespace = o.namespace || [0];
       var p = {};
       p.list = {
         search: {
           srsearch: o.key,
           srwhat: (target == 'text' ? 'text': 'title'),
+          srnamespace: namespace,
           srlimit: limit
         }
       };
