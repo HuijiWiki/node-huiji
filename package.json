@@ -1,6 +1,6 @@
 {
   "name": "node-huiji",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Utility Node.js module for Huiji",
   "main": "index.js",
   "scripts": {
