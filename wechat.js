@@ -130,48 +130,31 @@ module.exports = (function() {
           // A sole message-with-pic requires a 320px-wide picture
           size: 320
         }, function(err, data) {
-          if (err) {
-            console.log(err);
-            res.reply(self._respond_err());
-          } else {
-            if (data.length == 0) {
-              // Message is not a precise title of any page. 
-              // Try search.
-              api.search({
-                key: text,
-                limit: 10,  //  TODO: could be configured
-                target: 'default',  //  TODO: could be configured, or not...
+          if (err) return self._err(err, res);
+          if (data.length == 0) {
+            // Message is not a precise title of any page. 
+            // Try search.
+            api.search({
+              key: text,
+              limit: 10,  //  TODO: could be configured
+              target: 'default',  //  TODO: could be configured, or not...
+            }, function(err, data) {
+              if (err) return self._err(err, res);
+              if (data.length == 0) return self._no_result(res);
+              // Get details of these result pages
+              api.details({
+                titles: data,
+                // TODO: size == 320 or one more API call?
+                size: 320
               }, function(err, data) {
-                if (err) {
-                  console.log(err);
-                  res.reply(self._respond_err());
-                } else {
-                  if (data.length == 0) {
-                    res.reply(self._respond_no_result());
-                  } else {
-                    // Get details of these result pages
-                    api.details({
-                      titles: data,
-                      // TODO: size == 320 or one more API call?
-                      size: 320
-                    }, function(err, data) {
-                      if (err) {
-                        console.log(err);
-                        res.reply(self._respond_err());
-                      } else {
-                        res.reply(_.map(data, function(detail) {
-                          return self._single(detail);
-                        }));
-                      }
-                    });
-                  }
-                }
+                if (err) return self._err(err, res);
+                res.reply(_.map(data, function(detail) {
+                  return self._single(detail);
+                }));
               });
-            } else {
-              res.reply([
-                self._single(data[0])
-              ]);
-            }
+            });
+          } else {
+            res.reply([ self._single(data[0]) ]);
           }
         });
       }
@@ -370,20 +353,27 @@ module.exports = (function() {
       return base + '/wiki/' + title;
     },
     /*
-     * Default respond when an error occurs
-     * Return any response that can be passed to res.reply()
-     * self.conf.CONST.ERR is returned by default
+     * Called when an error occurs. Respond plain text conf.CONST.ERR to 
+     * client by default. 
+     *
+     * *err*, message of the error, will be logged.
+     * *res*, will call res.reply() to respond to client.
      */
-    _respond_err: function() {
-      return self.conf.CONST.ERR;
+    _err: function(err, res) {
+      console.log(err);
+      res.reply(this.conf.CONST.ERR);
+      return;
     },
     /*
-     * Default respond when no results are found
-     * Return any response that can be passed to res.reply()
-     * self.conf.CONST.NO_RESULT is returned by default
+     * Called when no results to respond. Respond plain text 
+     * conf.CONST.NO_RESULT to client by default.
+     *
+     * *res*, will call res.reply() to respond to client.
      */
-    _respond_no_result: function() {
-      return self.conf.CONST.NO_RESULT;
+    _no_result: function(res) {
+      console.log('NO RESULTS');
+      res.reply(this.conf.CONST.NO_RESULT);
+      return;
     },
     /*
      * Form wechat single message according to the result returned by API
