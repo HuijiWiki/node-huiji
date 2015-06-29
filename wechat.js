@@ -90,11 +90,10 @@ module.exports = (function() {
     start: function(port) {
       var port = port || this.conf.port || 80;
       var server = this.app.listen(port, function() {
-        // TODO: log
-        console.log("WeChat server for %s starts...", this.url);
+        console.log("WeChat server for %s starts...", self.url);
       });
       server.on('error', function(err) {
-        // TODO: log
+        console.log(err);
       });
     },
     /*************************************************************************
@@ -138,19 +137,24 @@ module.exports = (function() {
               key: text,
               limit: 10,  //  TODO: could be configured
               target: 'default',  //  TODO: could be configured, or not...
-            }, function(err, data) {
+            }, function(err, titles) {
               if (err) return self._err(err, res);
-              if (data.length == 0) return self._no_result(res);
+              if (titles.length == 0) return self._no_result(res);
               // Get details of these result pages
               api.details({
-                titles: data,
+                titles: titles,
                 // TODO: size == 320 or one more API call?
                 size: 320
               }, function(err, data) {
                 if (err) return self._err(err, res);
-                res.reply(_.map(data, function(detail) {
-                  return self._single(detail);
-                }));
+                // Preserve order of the searching results strictly according 
+                // to the order in titles
+                var results = [];
+                _.forEach(data, function(detail) {
+                  var index = titles.indexOf(detail.title);
+                  results[index] = self._single(detail);
+                });
+                res.reply(_.filter(results));
               });
             });
           } else {
