@@ -10,7 +10,8 @@ module.exports = (function() {
     port: 80,
     CONST: {
       ERR: '啊啦，服务器傲娇啦~~~~(>_<)~~~~ 。请稍后重试~！',
-      NO_RESULT: '抱歉，暂未找到相关词条，不妨试试其他关键词~？'
+      NO_RESULT: '抱歉，暂未找到相关词条，不妨试试其他关键词~？',
+      PIC_PLACEHOLDER: 'http://home.huiji.wiki/uploads/8/81/Wechat_placeholder_logo.png'
     }
   };
 
@@ -387,7 +388,8 @@ module.exports = (function() {
       var picurl = '';
       // TODO: further process to thumbnail according to its size
       if (!res.thumbnail) {
-        // TODO: if no thumbnail exists, a default pic should be returned.
+        // if no thumbnail exists, a default pic should be returned.
+        picurl = this.conf.CONST.PIC_PLACEHOLDER;
       } else {
         picurl = res.thumbnail.source;
       }
