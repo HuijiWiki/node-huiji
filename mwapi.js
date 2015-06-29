@@ -17,10 +17,8 @@
 module.exports = (function() {
   var request = require('request');
   var _ = require('lodash');
-  var self = null; // point to MWAPI itself
   
   var MWAPI = function() {
-    self = this;
   };
   
   MWAPI.prototype = {
@@ -167,10 +165,10 @@ module.exports = (function() {
       if (_.isEmpty(o)) return '';
       var qs = '&' + type + '=' + _.keysIn(o).join('|');
       return _.reduce(o, function(res, v, k) {
-        var func = self[k];
+        var func = this[k];
         if (func) res += func(v);
         return res;
-      }, qs);
+      }, qs, this);
     },
     /*
      * Generate query string for Query: prop
@@ -179,7 +177,7 @@ module.exports = (function() {
      * parameters for such module.
      */
     prop: function(o) {
-      return self._query('prop', o);
+      return this._query('prop', o);
     },
     /*
      * Generate query string for Query: list
@@ -188,7 +186,7 @@ module.exports = (function() {
      * parameters for such module.
      */
     list: function(o) {
-      return self._query('list', o);
+      return this._query('list', o);
     },
     /*
      * Call action=query mediawiki api. 
@@ -233,7 +231,7 @@ module.exports = (function() {
       var qs = '';
       if (o.list) {
         // list
-        qs += self.list(o.list);
+        qs += this.list(o.list);
       } else {
         // prop, TODO: generator
         var titles = o.titles || [];
@@ -245,7 +243,7 @@ module.exports = (function() {
         }
         // Currently, prop() only
         if (!_.isEmpty(o.prop)) {
-          qs += self.prop(o.prop);
+          qs += this.prop(o.prop);
         }
       }
       if (!url || !callback) return qs;
@@ -253,7 +251,7 @@ module.exports = (function() {
       var redirects = (o.redirects == undefined) ? true : o.redirects;
       url += '/api.php?action=query&format=json&indexpageids' + 
         (redirects ? '&redirects' : '') + qs;
-      self.send(url, callback);
+      this.send(url, callback);
     },
     /*
      * Do request to *url*, e.g., 

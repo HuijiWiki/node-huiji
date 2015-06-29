@@ -4,7 +4,7 @@ module.exports = (function() {
   var _ = require('lodash');
 
   var API = require('./api.js');
-  var api = null;		// API caller
+  var api = null;	// API caller
   var self = null;	// point to WeChat itself
   var default_conf = {
     port: 80,
@@ -67,7 +67,6 @@ module.exports = (function() {
     this._keywords_func = [];
 
     this.app = express();
-    this.app.parent = this; // set parent to app
     this.app.use('', wechat(config.wechat)
       .text(this.handlerText)
       .image(this.handlerImage)
@@ -77,6 +76,7 @@ module.exports = (function() {
       .link(this.handlerLink)
       .event(this.handlerEvent)
       .middlewarify());
+    // handlerXXX() functions need such self to point to WeChat instance itself
     self = this;
   };
   
@@ -91,7 +91,7 @@ module.exports = (function() {
       var port = port || this.conf.port || 80;
       var server = this.app.listen(port, function() {
         // TODO: log
-        console.log("WeChat server for %s starts...", self.url);
+        console.log("WeChat server for %s starts...", this.url);
       });
       server.on('error', function(err) {
         // TODO: log
@@ -196,8 +196,8 @@ module.exports = (function() {
         return false;
       }
 
-      _.forEach(self._hack_key, function(key, index) {
-        var value = self._hack_value[index];
+      _.forEach(this._hack_key, function(key, index) {
+        var value = this._hack_value[index];
         if (typeof(key) == 'string') {
           if (msg == key) return hit(value);
         } else if (key instanceof RegExp) {
@@ -207,7 +207,7 @@ module.exports = (function() {
           if (ret === true) return hit(value);
           if (ret !== false) return hit(ret);
         }
-      });
+      }, this);
       if (hacked) {
         console.log('hacked %s => %s', msg, res);
         return res;
@@ -237,27 +237,27 @@ module.exports = (function() {
         || _.isEqual(key, []) || key == '')
         return;
       if (key instanceof RegExp || typeof(key) == 'function') {
-        self._hack_key.push(key);
-        self._hack_value.push(value);
+        this._hack_key.push(key);
+        this._hack_value.push(value);
       } else if (_.isArray(key)) {
         if (value === undefined) {
           _.forEach(key, function(k) {
-            self.addHack(k.key, k.value);
-          });
+            this.addHack(k.key, k.value);
+          }, this);
         } else {
           _.forEach(key, function(k) {
-            self.addHack(k, value);
-          });
+            this.addHack(k, value);
+          }, this);
         }
       } else if (typeof(key) == 'object') {
         _.forEach(key, function(v, k) {
-          self._hack_key.push(k);
-          self._hack_value.push(v);
-        });
+          this._hack_key.push(k);
+          this._hack_value.push(v);
+        }, this);
       } else {
         key = '' + key;
-        self._hack_key.push(key);
-        self._hack_value.push(value);
+        this._hack_key.push(key);
+        this._hack_value.push(value);
       }
     },
     /*
@@ -281,8 +281,8 @@ module.exports = (function() {
         return false;
       }
 
-      _.forEach(self._keywords_key, function(key, index) {
-        var func = self._keywords_func[index];
+      _.forEach(this._keywords_key, function(key, index) {
+        var func = this._keywords_func[index];
         if (typeof(key) == 'string') {
           if (msg == key) return hit(func);
         } else if (key instanceof RegExp) {
@@ -292,7 +292,7 @@ module.exports = (function() {
           if (ret === true) return hit(func);
           if (ret !== false) return hit(ret);
         }
-      });
+      }, this);
       if (handled) {
         console.log('keyword %s hit.', msg);
         return res;
@@ -316,23 +316,23 @@ module.exports = (function() {
         || _.isEqual(key, []) || key == '')
         return;
       if (key instanceof RegExp || typeof(key) == 'function') {
-        self._keywords_key.push(key);
-        self._keywords_func.push(func);
+        this._keywords_key.push(key);
+        this._keywords_func.push(func);
       } else if (_.isArray(key)) {
         if (func === undefined) {
           _.forEach(key, function(k) {
-            self.addKeyword(k.key, k.func);
-          });
+            this.addKeyword(k.key, k.func);
+          }, this);
         } else {
           _.forEach(key, function(k) {
-            self.addKeyword(k, func);
-          });
+            this.addKeyword(k, func);
+          }, this);
         }
       } else if (typeof(key) == 'object') {
         _.forEach(key, function(f, k) {
-          self._keywords_key.push(k);
-          self._keywords_func.push(f);
-        });
+          this._keywords_key.push(k);
+          this._keywords_func.push(f);
+        }, this);
       } else {
         key = '' + key;
         this._keywords_key.push(key);
