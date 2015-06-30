@@ -5,6 +5,9 @@ module.exports = (function() {
 	var schedule = require('node-schedule');
   	var _ = require('lodash');
   	var API = require('./api.js');
+  	var FormData = require('form-data');
+  	var request = require('request').defaults({ encoding: null });
+  	var http = require('http');
   	var api = null;	// API caller
     var self = null;	// point to WeChat itself
   	var default_conf = {
@@ -55,7 +58,7 @@ module.exports = (function() {
 		});
 
 		self.app.get('/auth', function(request, response) {
-			self.conf.weibo.code = request.query.code;
+			self.conf.weibo.code = request.query.client_secret;
   			response.redirect('/access_token');
 		});
 
@@ -301,7 +304,7 @@ module.exports = (function() {
 							var para = {
 							    "source": Weibo.appKey.appKey,
 							    "access_token": self.conf.weibo.access_token,
-							    "comment": data[0].abstract.substring(0,110)+"..."+self._page_short_url(data[0].pageid),
+							    "comment": data[0].extract.substring(0,110)+"..."+self._page_short_url(data[0].pageid),
 							    "id" : id,
 							    "cid" : cid
 							}
@@ -322,6 +325,73 @@ module.exports = (function() {
 	    },
 
 	    status: function( content, username ) {
+	    	var param = {
+	    		key: content,
+	    		limit: 1,
+	    	}
+	    	api.search(param, function(err, data){
+	    		if (err){
+	    			console.log(err);
+	    			return;
+	    		}
+	    		if (self.conf.debug){
+	    			console.log(data);
+	    		}
+	    		if (data != undefined && data[0] != undefined){
+	    			param = {
+	    				titles: data
+	    			}
+	    			api.details(param, function (err, data){
+	    				if (err || data == undefined || data[0] == undefined ){
+			    			console.log(err);
+			    			return;
+			    		}
+			    		if (self.conf.debug){
+			    			console.log(data);
+			    		}
+			    		var msg = '';
+			    		if (username){
+			    			msg += '@'+ username+' ';
+			    		}
+			    		msg += data[0].extract.substring(0,110)+'...'+self._page_short_url(data[0].pageid);
+
+			    		if (data[0].thumbnail && data[0].thumbnail.source){
+			    			console.log(data[0].thumbnail.source);
+			    			var form = new FormData();
+			    			http.request(data[0].thumbnail.source, function(response){
+			    				form.append('source', Weibo.appKey.appKey);
+						    	form.append('access_token', self.conf.weibo.access_token);
+						    	form.append('status', msg);	
+						    	form.append('pic', response);	
+						    	form.submit('https://api.weibo.com/2/statuses/upload.json', function(err, res) {
+									if (err) {
+										console.log(err);
+										return;
+									}
+									if(self.conf.debug){
+										console.log(res.statusCode);
+									}
+									res.resume();
+								});		
+			    			});
+							
+
+			    		} else {
+							var para = {
+								"source": Weibo.appKey.appKey,
+								"access_token": self.conf.weibo.access_token,
+							    "status": msg
+							}
+							Weibo.Statuses.update(para, function(data){
+								if (self.conf.debug){
+									console.log(data);
+								}
+							});     			
+			    		}
+			    	});
+	    		}
+
+	    	});
 
 	    },
 
@@ -330,7 +400,33 @@ module.exports = (function() {
 	    },
 
 	    postRandomArticle: function (){
+	    	url="http://asoiaf.huiji.wiki/api.php?action=query&list=random&rnlimit=1&format=json&rnnamespace=0"
+			var my_source = Weibo.appKey.appKey, my_token = self.conf.weibo.access_token;
 
+			request.get(url, function(err, res, body){
+				if (!err && res.statusCode == 200) {
+					var query = JSON.parse(body).query;
+					var winner = query.random[0].title;
+					if(self.conf.debug)
+						console.log(winner);
+					self.status( winner, false);
+				}
+			});
+
+	    },
+
+	    authorize: function(){
+	    	Weibo.authorize();
+	    },
+	    getToken: function(){
+			var jsonParas = {
+			    code: self.conf.weibo.code,
+			    grant_type:"authorization_code"
+			};
+
+			Weibo.OAuth2.access_token(jsonParas,function(data){
+			    console.log(data);
+			});	    	
 	    },
 	    /*
 	     * Get url of the wiki site

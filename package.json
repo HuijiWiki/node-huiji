@@ -13,7 +13,9 @@
     "express": "*",
     "node-schedule": "*",
     "sleep": "*",
-    "nodeweibo": "*"
+    "nodeweibo": "*",
+    "form-data": "*",
+    "http":"*"
   }, 
   "devDependencies": {
     "mocha": "*", 
