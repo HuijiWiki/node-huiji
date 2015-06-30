@@ -15,7 +15,7 @@
     "sleep": "*",
     "nodeweibo": "*",
     "form-data": "*",
-    "http":"*"
+    "fs":"*"
   }, 
   "devDependencies": {
     "mocha": "*", 

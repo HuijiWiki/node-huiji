@@ -6,8 +6,8 @@ module.exports = (function() {
   	var _ = require('lodash');
   	var API = require('./api.js');
   	var FormData = require('form-data');
-  	var request = require('request').defaults({ encoding: null });
-  	var http = require('http');
+  	var fs = require('fs');
+  	var request = require('request').defaults({ encoding: null });;
   	var api = null;	// API caller
     var self = null;	// point to WeChat itself
   	var default_conf = {
@@ -58,7 +58,7 @@ module.exports = (function() {
 		});
 
 		self.app.get('/auth', function(request, response) {
-			self.conf.weibo.code = request.query.client_secret;
+			self.conf.weibo.code = request.query.code;
   			response.redirect('/access_token');
 		});
 
@@ -356,25 +356,14 @@ module.exports = (function() {
 			    		msg += data[0].extract.substring(0,110)+'...'+self._page_short_url(data[0].pageid);
 
 			    		if (data[0].thumbnail && data[0].thumbnail.source){
-			    			console.log(data[0].thumbnail.source);
 			    			var form = new FormData();
-			    			http.request(data[0].thumbnail.source, function(response){
-			    				form.append('source', Weibo.appKey.appKey);
-						    	form.append('access_token', self.conf.weibo.access_token);
-						    	form.append('status', msg);	
-						    	form.append('pic', response);	
-						    	form.submit('https://api.weibo.com/2/statuses/upload.json', function(err, res) {
-									if (err) {
-										console.log(err);
-										return;
-									}
-									if(self.conf.debug){
-										console.log(res.statusCode);
-									}
-									res.resume();
-								});		
+			    			form.append('source', Weibo.appKey.appKey);
+			    			form.append('access_token', self.conf.weibo.access_token);
+			    			form.append('pic', request(data[0].thumbnail.source));
+			    			form.append('status', msg);
+			    			form.submit('https://upload.api.weibo.com/2/statuses/upload.json', function(err, res){
+			    				res.resume();
 			    			});
-							
 
 			    		} else {
 							var para = {
