@@ -5,11 +5,19 @@ module.exports = (function() {
 	var schedule = require('node-schedule');
   	var _ = require('lodash');
   	var API = require('./api.js');
+  	var api = null;	// API caller
+    var self = null;	// point to WeChat itself
   	var default_conf = {
   		port: 80,
 		lastMentionId : 0,
 		lastMentionInCommentsId: 0, 
+		statusesPerDay: 5,
 		debug: true, 
+		CONST: {
+      		ERR: '啊啦，服务器傲娇啦~~~~(>_<)~~~~ 。请稍后重试~！',
+      		NO_RESULT: '抱歉，暂未找到相关词条，不妨试试其他关键词~？',
+      		PIC_PLACEHOLDER: 'http://home.huiji.wiki/uploads/8/81/Wechat_placeholder_logo.png'
+    	}
   	};
 
   	var WeiboServer = function(config){
@@ -25,42 +33,45 @@ module.exports = (function() {
 
 	    if (!config) return;
 	    if (!config.name || !config.weibo) return;
-	    var weibo_required = _.every(['token', 'code', 'settings'], function(n) {
+	    var weibo_required = _.every(['access_token', 'code', 'settings'], function(n) {
 	      return _.has(config.weibo, n);
 	    });
 	    if (!weibo_required) return;
 
-	    this.conf = default_conf;
-    	_.assign(this.conf, config);
+	    self = this;
 
-	    this.url = this._url();
-	    api = new API(this.url);
+	    self.conf = default_conf;
+    	_.assign(self.conf, config);
 
-	    this.app = express();
-	    this.app.parent = this; // set parent to app
+	    self.url = self._url();
+	    api = new API(self.url);
 
-		this.app.set('port', (this.conf.port));
-		this.app.get('/', function(request, response) {
+	    self.app = express();
+	    self.app.parent = self; // set parent to app
+
+		self.app.get('/', function(request, response) {
 			var echostr = request.query.echostr;
 			response.send(echostr);
 		});
 
-		this.app.get('/auth', function(request, response) {
-			this.conf.weibo.code = request.query.code;
+		self.app.get('/auth', function(request, response) {
+			self.conf.weibo.code = request.query.code;
   			response.redirect('/access_token');
 		});
 
-		this.app.get('/access_token', function(request, response) {
+		self.app.get('/access_token', function(request, response) {
 			var jsonParas = {
-			    code:this.conf.weibo.code,
+			    code:self.conf.weibo.code,
 			    grant_type:"authorization_code"
 			};
 			Weibo.OAuth2.access_token(jsonParas,function(data){
-			    this.conf.weibo.access_token = data.access_token;
+			    self.conf.weibo.access_token = data.access_token;
 			    response.send('Authenticated!');
 			});
   	
 		});
+		Weibo.init(self.conf.weibo.settings);
+						
 	};
 	WeiboServer.prototype = {
 	    /*
@@ -70,44 +81,44 @@ module.exports = (function() {
 	     * conf.port and if still not set, 80 by default.
 	     */
 	    start: function(port) {
-			var server = this.app.listen(port || this.app.get('port'), function() {
+			var server = self.app.listen( port || self.conf.port, function() {
 				// TODO: log
 				console.log("weibo server for %s starts...", self.url);
-				Weibo.init(this.conf.weibo.settings);
+
 				var para = {
 				    "source": Weibo.appKey.appKey,
-				    "access_token": this.conf.weibo.access_token,
-				    "since_id": this.conf.lastMentionId,
+				    "access_token": self.conf.weibo.access_token,
+				    "since_id": self.conf.lastMentionId,
 				    "count": 1
 				}
 				Weibo.Statuses.mentions(para, function(data){
-					if (this.conf.debug){
+					if (self.conf.debug){
 						console.log(data);
 					}
 					if (data.statuses[0] != undefined){
-						this.conf.lastMentionId = data.statuses[0].id;
+						self.conf.lastMentionId = data.statuses[0].id;
 					}
 				});
 				var para = {
 				    "source": Weibo.appKey.appKey,
-				    "access_token": this.conf.weibo.access_token,
-				    "since_id": this.conf.weibo.lastMentionInCommentsId,
+				    "access_token": self.conf.weibo.access_token,
+				    "since_id": self.conf.weibo.lastMentionInCommentsId,
 				    "count": 1
 				}
 				Weibo.Comments.mentions(para, function(data){
-					if (this.conf.debug){
+					if (self.conf.debug){
 						console.log(data);
 					}
 					if (data.comments[0] != undefined){
-						this.conf.lastMentionInCommentsId = data.comments[0].id;
+						self.conf.lastMentionInCommentsId = data.comments[0].id;
 					}
 				});
-				if(this.conf.debug){
+				if(self.conf.debug){
 			 		//adapter.random(Weibo.appKey.appKey,this.conf.access_token);
 			 	}
 			});
 			server.on('error', function(err) {
-			// TODO: log
+				console.log(err);
 			});
 			var rule = new schedule.RecurrenceRule();
 			rule.second = 1;
@@ -117,22 +128,23 @@ module.exports = (function() {
 				 been called before we finish initialization.
 				 Thus, we will abort this job if no record found.
 				*/
-				if(this.conf.lastMentionId == 0 ){
-					return
+				if(self.conf.lastMentionId == 0 ){
+					return;
 				}
 				var para = {
 				    "source": Weibo.appKey.appKey,
-				    "access_token": this.conf.weibo.access_token,
-				    "since_id": this.conf.lastMentionId
+				    "access_token": self.conf.weibo.access_token,
+				    "since_id": self.conf.lastMentionId
 				}
 				Weibo.Statuses.mentions(para, function(data){
-					if (this.conf.debug){
+					if (self.conf.debug){
 						console.log(data);
 					}
-					if (data.statuses[0] == null) {
+					if (data.statuses[0] == undefined) {
+						self.conf.lastMentionId = 1;
 						return;
 					}
-					this.conf.lastMentionId = data.statuses[0].id;
+					self.conf.lastMentionId = data.statuses[0].id;
 
 					for (mention in data.statuses){
 						var username = data.statuses[mention].user.screen_name;
@@ -155,10 +167,10 @@ module.exports = (function() {
 						var id = data.statuses[mention].id;
 
 						if (data.statuses[mention].user.allow_all_comment){
-							this.comment(Weibo.appKey.appKey, this.conf.access_token, content, id, null);
+							self.comment(content, id, null);
 							sleep.sleep(5);
 						}else{		
-							this.status(Weibo.appKey.appKey, this.conf.access_token, content, username);
+							self.status(content, username);
 							sleep.sleep(5);
 
 						}
@@ -172,23 +184,25 @@ module.exports = (function() {
 				 been called before we finish initialization.
 				 Thus, we will abort this job if no record found.
 				*/
-				if(this.conf.lastMentionInCommentsId == 0 ){
+				if(self.conf.lastMentionInCommentsId == 0 ){
+					self.conf.lastMentionInCommentsId = 1;
 					return;
 				}
 
 				var para = {
 				    "source": Weibo.appKey.appKey,
-				    "access_token": this.conf.weibo.access_token,
-				    "since_id": this.conf.lastMentionInCommentsId
+				    "access_token": self.conf.weibo.access_token,
+				    "since_id": self.conf.lastMentionInCommentsId
 				}
 
 				Weibo.Comments.mentions(para, function(data){
-					if (this.conf.debug){
+					if (self.conf.debug){
 						console.log(data);
 					}	
-					if (data.comments[0] == null)
+					if (data.comments[0] == null){
 						return;	
-					this.conf.lastMentionInCommentsId = data.comments[0].id;
+					}
+					self.conf.lastMentionInCommentsId = data.comments[0].id;
 
 					for (mention in data.comments){
 						var username = data.comments[mention].user.screen_name;
@@ -196,12 +210,8 @@ module.exports = (function() {
 						var id = data.comments[mention].status.id;
 						var cid = data.comments[mention].id;
 						if (data.comments[mention].status.user.allow_all_comment){
-							this.comment(Weibo.appKey.appKey, this.conf.access_token, content, id, cid);
+							self.comment(content, id, cid);
 							sleep.sleep(5);
-						}else{
-							this.status(Weibo.appKey.appKey,this.conf.access_token,content, username);
-							sleep.sleep(5);
-
 						}
 					}
 				});
@@ -210,19 +220,104 @@ module.exports = (function() {
 			rule.hour = 8;
 			rule.minute = 30;
 			var postMostViewedCharacter = schedule.scheduleJob(rule, function(){
-				this.specialStatus(Weibo.appKey.appKey,this.conf.access_token,"most viewed");
+				self.specialStatus(Weibo.appKey.appKey,self.conf.access_token,"most viewed");
 
 
 			});
 			rule = new schedule.RecurrenceRule();
-			rule.hour = [ 11, 15, 17, 21];
+			switch (self.conf.statusesPerDay){
+				case 0:
+					return;
+					break;
+				case 1:
+					rule.hour = [21];
+					break;
+				case 2:
+					rule.hour = [15, 21];
+					break;
+				case 3:
+					rule.hour = [11, 15, 21];
+					break;
+				case 4:
+					rule.hour = [9, 11, 15, 21];
+					break;
+				case 5:
+					rule.hour = [9, 11, 15, 19, 21];
+					break;
+				case 6:
+					rule.hour = [9, 11, 15, 17, 19, 21];
+					break;
+				default:
+					rule.hour = [9, 11, 13, 15, 17, 19, 21];
+					break;
+			}
 			rule.minute = 0;
 			var postRandomArticle = schedule.scheduleJob(rule, function(){
-				this.random(Weibo.appKey.appKey,this.conf.access_token);
+				self.postRandomArticle();
 			});
 
 	    },
 	    comment: function( content, id, cid ){
+	    	var param = {
+	    		key: content,
+	    		limit: 1,
+	    	}
+	    	api.search(param, function(err, data){
+	    		if (err){
+	    			console.log(err);
+	    			return;
+	    		}
+	    		if (self.conf.debug){
+	    			console.log(data);
+	    		}
+	    		if (data != undefined && data[0] != undefined){
+	    			param = {
+	    				titles: data,
+	    				abstracts: 140,
+	    			}
+	    			api.details(param, function (err, data){
+	    				if (err || data == undefined || data[0] == undefined ){
+			    			console.log(err);
+			    			return;
+			    		}
+			    		if (self.conf.debug){
+			    			console.log(data);
+			    		}
+			    		if (cid == null){
+							var para = {
+							    "source": Weibo.appKey.appKey,
+							    "access_token": self.conf.weibo.access_token,
+							    "comment": data[0].extract.substring(0,120)+"..."+self._page_short_url(data[0].pageid),
+							    "id" : id
+							}
+				
+							Weibo.Comments.create(para, function(data){
+								if (self.conf.debug){
+									console.log(data);
+								}
+							});
+			    		}
+			    		else {
+							var para = {
+							    "source": Weibo.appKey.appKey,
+							    "access_token": self.conf.weibo.access_token,
+							    "comment": data[0].abstract.substring(0,110)+"..."+self._page_short_url(data[0].pageid),
+							    "id" : id,
+							    "cid" : cid
+							}
+							Weibo.Comments.reply(para, function(data){
+								if (self.conf.debug){
+									console.log(data);
+								}
+							});
+			    		}
+
+	    			});
+	    		}
+
+
+	    		
+	    	});
 
 	    },
 
@@ -241,14 +336,21 @@ module.exports = (function() {
 	     * Get url of the wiki site
 	     */
 	    _url: function() {
-	      return 'http://' + this.conf.name + '.huiji.wiki';
+	      return 'http://' + self.conf.name + '.huiji.wiki';
 	    },
 	    /*
 	     * Get page url on the wiki site
 	     */
 	    _page_url: function(title) {
-	      var base = this.url || this._url();
+	      var base = self.url || self._url();
 	      return base + '/wiki/' + title;
+	    },
+	    /*
+	     * Get short url on the wiki site
+	     */
+	    _page_short_url: function(id) {
+	      var base = self.url || self._url();
+	      return base + '/index.php?curid=' + id;
 	    },
 	    /*
 	     * Called when an error occurs. Respond plain text conf.CONST.ERR to 
@@ -259,10 +361,11 @@ module.exports = (function() {
 	     */
 	    _err: function(err, res) {
 	      console.log(err);
-	      res.reply(this.conf.CONST.ERR);
+	      res.reply(self.conf.CONST.ERR);
 	      return;
 	    }
 	};
+	return WeiboServer;
 
 }());
 

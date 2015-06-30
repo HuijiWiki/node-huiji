@@ -12,7 +12,8 @@
     "wechat": "*",
     "express": "*",
     "node-schedule": "*",
-    "sleep": "*"
+    "sleep": "*",
+    "nodeweibo": "*"
   }, 
   "devDependencies": {
     "mocha": "*", 
