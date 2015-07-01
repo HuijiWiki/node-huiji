@@ -4,5 +4,5 @@ module.exports = {
   WeChat: require('./wechat.js'),
   Util: require('./util.js'),
   Weibo: require('./weibo.js'),
-  VERSION: '0.1.0'
+  VERSION: '0.2.0'
 };
