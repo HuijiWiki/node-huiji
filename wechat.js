@@ -357,13 +357,6 @@ module.exports = (function() {
       var base = this.url || this._url();
       return base + '/wiki/' + title;
     },
-        /*
-     * Get page url on the wiki site
-     */
-    _page_short_url: function(id) {
-      var base = this.url || this._url();
-      return base + '/index.php?curid=' + id;
-    },
     /*
      * Called when an error occurs. Respond plain text conf.CONST.ERR to 
      * client by default. 

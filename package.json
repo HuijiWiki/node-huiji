@@ -14,8 +14,7 @@
     "node-schedule": "*",
     "sleep": "*",
     "nodeweibo": "*",
-    "form-data": "*",
-    "fs":"*"
+    "form-data": "*"
   }, 
   "devDependencies": {
     "mocha": "*", 
