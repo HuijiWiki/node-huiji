@@ -14,7 +14,8 @@ module.exports = (function() {
       MSG_NORESULT: '抱歉，暂未找到相关词条，不妨试试其他关键词~？',
       MSG_SUBSCRIBE: '感谢您关注本维基公众号！本维基依托于灰机维基平台。灰机，带你飞！',
       PIC_PLACEHOLDER: 'http://home.huiji.wiki/uploads/8/81/Wechat_placeholder_logo.png',
-      EXTRACT_REPLY_LIMIT: 160
+      EXTRACT_REPLY_LIMIT: 160,
+      SEARCH_LIMIT: 10
     }
   };
 
@@ -134,13 +135,8 @@ module.exports = (function() {
         }, function(err, data) {
           if (err) return self._err(err, res);
           if (data.length == 0) {
-            // Message is not a precise title of any page. 
-            // Try search.
-            api.search({
-              key: text,
-              limit: 10,  //  TODO: could be configured
-              target: 'default',  //  TODO: could be configured, or not...
-            }, function(err, titles) {
+            // Message is not a precise title of any page. Try search.
+            self._search(text, function(err, titles) {
               if (err) return self._err(err, res);
               if (titles.length == 0) return self._noresult(res);
               // Get details of these result pages
@@ -361,6 +357,18 @@ module.exports = (function() {
     _page_url: function(title) {
       var base = this.url || this._url();
       return base + '/wiki/' + title;
+    },
+    /*
+     * Wrap api.search(). 
+     * _search() allows developers to inherit and change default parameters 
+     * for api.search() call. 
+     */
+    _search: function(key, callback) {
+      api.search({
+        key: key,
+        limit: this.conf.CONST.SEARCH_LIMIT,
+        target: 'default'
+      }, callback);
     },
     /*
      * Called when an error occurs. Respond plain text conf.CONST.MSG_ERR to 
