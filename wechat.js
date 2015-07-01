@@ -13,7 +13,8 @@ module.exports = (function() {
       MSG_ERR: '啊啦，服务器傲娇啦~~~~(>_<)~~~~ 。请稍后重试~！',
       MSG_NORESULT: '抱歉，暂未找到相关词条，不妨试试其他关键词~？',
       MSG_SUBSCRIBE: '感谢您关注本维基公众号！本维基依托于灰机维基平台。灰机，带你飞！',
-      PIC_PLACEHOLDER: 'http://home.huiji.wiki/uploads/8/81/Wechat_placeholder_logo.png'
+      PIC_PLACEHOLDER: 'http://home.huiji.wiki/uploads/8/81/Wechat_placeholder_logo.png',
+      EXTRACT_REPLY_LIMIT: 160
     }
   };
 
@@ -410,6 +411,10 @@ module.exports = (function() {
       } else {
         picurl = res.thumbnail.source;
       }
+      res.extract = _.trunc(res.extract, {
+        'length': this.conf.CONST.EXTRACT_REPLY_LIMIT, 
+        'separator': /(，|。|\n)/
+      });
       return {
         title: res.title,
         description: res.extract,
