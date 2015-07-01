@@ -12,6 +12,7 @@ module.exports = (function() {
     CONST: {
       MSG_ERR: '啊啦，服务器傲娇啦~~~~(>_<)~~~~ 。请稍后重试~！',
       MSG_NORESULT: '抱歉，暂未找到相关词条，不妨试试其他关键词~？',
+      MSG_SUBSCRIBE: '感谢您关注本维基公众号！本维基依托于灰机维基平台。灰机，带你飞！',
       PIC_PLACEHOLDER: 'http://home.huiji.wiki/uploads/8/81/Wechat_placeholder_logo.png'
     }
   };
@@ -175,6 +176,9 @@ module.exports = (function() {
     handlerLink: function(msg, req, res, next) {
     },
     handlerEvent: function(msg, req, res, next) {
+      if (msg.Event == 'subscribe') {
+        self._subscribe(res);
+      } // TODO: else if...
     },
     /*
      * Hack users' input for various reasons, e.g. avoid typo, support new 
@@ -381,7 +385,20 @@ module.exports = (function() {
       return;
     },
     /*
+     * Called when a user subscribes. Respond plain text 
+     * conf.CONST.MSG_SUBSCRIBE to client by default.
+     *
+     * *res*, will call res.reply() to respond to client.
+     */
+    _subscribe: function(res) {
+      console.log('SUBSCRIBE');
+      res.reply(this.conf.CONST.MSG_SUBSCRIBE);
+      return;
+    },
+    /*
      * Form wechat single message according to the result returned by API
+     *
+     * *res* represents a single record of data to be replied.
      */
     _single: function(res) {
       // handle thumbnail
