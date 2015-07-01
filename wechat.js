@@ -3,14 +3,15 @@ module.exports = (function() {
   var express = require('express');
   var _ = require('lodash');
 
+  var util = require('./util.js');
   var API = require('./api.js');
   var api = null;	// API caller
   var self = null;	// point to WeChat itself
   var default_conf = {
     port: 80,
     CONST: {
-      ERR: '啊啦，服务器傲娇啦~~~~(>_<)~~~~ 。请稍后重试~！',
-      NO_RESULT: '抱歉，暂未找到相关词条，不妨试试其他关键词~？',
+      MSG_ERR: '啊啦，服务器傲娇啦~~~~(>_<)~~~~ 。请稍后重试~！',
+      MSG_NORESULT: '抱歉，暂未找到相关词条，不妨试试其他关键词~？',
       PIC_PLACEHOLDER: 'http://home.huiji.wiki/uploads/8/81/Wechat_placeholder_logo.png'
     }
   };
@@ -53,8 +54,7 @@ module.exports = (function() {
     });
     if (!wechat_required) return;
 
-    this.conf = default_conf;
-    _.assign(this.conf, config);
+    this.conf = util.defaults(config, default_conf);
     
     this.url = this._url();
     api = new API(this.url);
@@ -140,7 +140,7 @@ module.exports = (function() {
               target: 'default',  //  TODO: could be configured, or not...
             }, function(err, titles) {
               if (err) return self._err(err, res);
-              if (titles.length == 0) return self._no_result(res);
+              if (titles.length == 0) return self._noresult(res);
               // Get details of these result pages
               api.details({
                 titles: titles,
@@ -358,7 +358,7 @@ module.exports = (function() {
       return base + '/wiki/' + title;
     },
     /*
-     * Called when an error occurs. Respond plain text conf.CONST.ERR to 
+     * Called when an error occurs. Respond plain text conf.CONST.MSG_ERR to 
      * client by default. 
      *
      * *err*, message of the error, will be logged.
@@ -366,18 +366,18 @@ module.exports = (function() {
      */
     _err: function(err, res) {
       console.log(err);
-      res.reply(this.conf.CONST.ERR);
+      res.reply(this.conf.CONST.MSG_ERR);
       return;
     },
     /*
      * Called when no results to respond. Respond plain text 
-     * conf.CONST.NO_RESULT to client by default.
+     * conf.CONST.MSG_NORESULT to client by default.
      *
      * *res*, will call res.reply() to respond to client.
      */
-    _no_result: function(res) {
+    _noresult: function(res) {
       console.log('NO RESULTS');
-      res.reply(this.conf.CONST.NO_RESULT);
+      res.reply(this.conf.CONST.MSG_NORESULT);
       return;
     },
     /*
