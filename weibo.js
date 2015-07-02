@@ -295,6 +295,7 @@ module.exports = (function() {
 							Weibo.Comments.create(para, function(data){
 								if (self.conf.debug){
 									console.log(data);
+								}
 							});
 			    		}
 			    		else {
