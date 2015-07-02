@@ -22,4 +22,4 @@ var weibo = new WeiboServer(config);
 //weibo.getToken();
 //weibo.postRandomArticle();https://api.weibo.com/oauth2/authorize?client_id=3858894607&redirect_uri=https://zh-asoiaf-weibo.herokuapp.com/auth&client_secret=29625396137fc382c0c46f38a0ea97c2&
 // weibo.postRandomArticle();
-weibo.status('琼恩');
+weibo.status('丹妮');

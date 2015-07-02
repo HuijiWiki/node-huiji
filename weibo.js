@@ -361,8 +361,10 @@ module.exports = (function() {
 			    			form.append('access_token', self.conf.weibo.access_token);
 			    			form.append('pic', request(data[0].thumbnail.source));
 			    			form.append('status', msg);
+			    			console.log(form);
 			    			form.submit('https://upload.api.weibo.com/2/statuses/upload.json', function(err, res){
 			    				res.resume();
+			    				console.log(res);
 			    			});
 
 			    		} else {
