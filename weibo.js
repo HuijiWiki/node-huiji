@@ -9,7 +9,7 @@ module.exports = (function() {
   	var fs = require('fs');
   	var request = require('request').defaults({ encoding: null });;
   	var api = null;	// API caller
-    var self = null;	// point to WeChat itself
+    var mInstance = null;	// point to the instance of this server
   	var default_conf = {
   		port: 80,
 		lastMentionId : 0,
@@ -41,41 +41,41 @@ module.exports = (function() {
 	    });
 	    if (!weibo_required) return;
 
-	    self = this;
+	    mInstance = this;
 
 
-	    self.conf = default_conf;
-    	_.assign(self.conf, config);
+	    mInstance.conf = default_conf;
+    	_.assign(mInstance.conf, config);
 
-	    self.url = self._url();
-	    api = new API(self.url);
+	    mInstance.url = mInstance._url();
+	    api = new API(mInstance.url);
 
-	    self.app = express();
-		self.app.use(express.static(__dirname + '/public'));
-	    self.app.parent = self; // set parent to app
+	    mInstance.app = express();
+		mInstance.app.use(express.static(__dirname + '/public'));
+	    mInstance.app.parent = mInstance; // set parent to app
 
-		self.app.get('/', function(request, response) {
+		mInstance.app.get('/', function(request, response) {
 			var echostr = request.query.echostr;
 			response.send(echostr);
 		});
 
-		self.app.get('/auth', function(request, response) {
-			self.conf.weibo.code = request.query.code;
+		mInstance.app.get('/auth', function(request, response) {
+			mInstance.conf.weibo.code = request.query.code;
   			response.redirect('/access_token');
 		});
 
-		self.app.get('/access_token', function(request, response) {
+		mInstance.app.get('/access_token', function(request, response) {
 			var jsonParas = {
-			    code:self.conf.weibo.code,
+			    code:mInstance.conf.weibo.code,
 			    grant_type:"authorization_code"
 			};
 			Weibo.OAuth2.access_token(jsonParas,function(data){
-			    self.conf.weibo.access_token = data.access_token;
+			    mInstance.conf.weibo.access_token = data.access_token;
 			    response.send('Authenticated!');
 			});
   	
 		});
-		Weibo.init(self.conf.weibo.settings);
+		Weibo.init(mInstance.conf.weibo.settings);
 						
 	};
 	WeiboServer.prototype = {
@@ -86,38 +86,38 @@ module.exports = (function() {
 	     * conf.port and if still not set, 80 by default.
 	     */
 	    start: function(port) {
-			var server = self.app.listen( port || self.conf.port, function() {
+			var server = mInstance.app.listen( port || mInstance.conf.port, function() {
 				// TODO: log
-				console.log("weibo server for %s starts...", self.url);
+				console.log("weibo server for %s starts...", mInstance.url);
 				var para = {
 				    "source": Weibo.appKey.appKey,
-				    "access_token": self.conf.weibo.access_token,
-				    "since_id": self.conf.lastMentionId,
+				    "access_token": mInstance.conf.weibo.access_token,
+				    "since_id": mInstance.conf.lastMentionId,
 				    "count": 1
 				}
 				Weibo.Statuses.mentions(para, function(data){
-					if (self.conf.debug){
+					if (mInstance.conf.debug){
 						console.log(data);
 					}
 					if (data.statuses[0] != undefined){
-						self.conf.lastMentionId = data.statuses[0].id;
+						mInstance.conf.lastMentionId = data.statuses[0].id;
 					}
 				});
 				var para = {
 				    "source": Weibo.appKey.appKey,
-				    "access_token": self.conf.weibo.access_token,
-				    "since_id": self.conf.weibo.lastMentionInCommentsId,
+				    "access_token": mInstance.conf.weibo.access_token,
+				    "since_id": mInstance.conf.weibo.lastMentionInCommentsId,
 				    "count": 1
 				}
 				Weibo.Comments.mentions(para, function(data){
-					if (self.conf.debug){
+					if (mInstance.conf.debug){
 						console.log(data);
 					}
 					if (data.comments[0] != undefined){
-						self.conf.lastMentionInCommentsId = data.comments[0].id;
+						mInstance.conf.lastMentionInCommentsId = data.comments[0].id;
 					}
 				});
-				if(self.conf.debug){
+				if(mInstance.conf.debug){
 			 		//adapter.random(Weibo.appKey.appKey,this.conf.access_token);
 			 	}
 			});
@@ -132,23 +132,23 @@ module.exports = (function() {
 				 been called before we finish initialization.
 				 Thus, we will abort this job if no record found.
 				*/
-				if(self.conf.lastMentionId == 0 ){
+				if(mInstance.conf.lastMentionId == 0 ){
 					return;
 				}
 				var para = {
 				    "source": Weibo.appKey.appKey,
-				    "access_token": self.conf.weibo.access_token,
-				    "since_id": self.conf.lastMentionId
+				    "access_token": mInstance.conf.weibo.access_token,
+				    "since_id": mInstance.conf.lastMentionId
 				}
 				Weibo.Statuses.mentions(para, function(data){
-					if (self.conf.debug){
+					if (mInstance.conf.debug){
 						console.log(data);
 					}
 					if (data.statuses[0] == undefined) {
-						self.conf.lastMentionId = 1;
+						mInstance.conf.lastMentionId = 1;
 						return;
 					}
-					self.conf.lastMentionId = data.statuses[0].id;
+					mInstance.conf.lastMentionId = data.statuses[0].id;
 
 					for (mention in data.statuses){
 						var username = data.statuses[mention].user.screen_name;
@@ -171,10 +171,10 @@ module.exports = (function() {
 						var id = data.statuses[mention].id;
 
 						if (data.statuses[mention].user.allow_all_comment){
-							self.comment(content, id, null);
+							mInstance.comment(content, id, null);
 							sleep.sleep(5);
 						}else{		
-							self.status(content, username);
+							mInstance.status(content, username);
 							sleep.sleep(5);
 
 						}
@@ -188,25 +188,25 @@ module.exports = (function() {
 				 been called before we finish initialization.
 				 Thus, we will abort this job if no record found.
 				*/
-				if(self.conf.lastMentionInCommentsId == 0 ){
-					self.conf.lastMentionInCommentsId = 1;
+				if(mInstance.conf.lastMentionInCommentsId == 0 ){
+					mInstance.conf.lastMentionInCommentsId = 1;
 					return;
 				}
 
 				var para = {
 				    "source": Weibo.appKey.appKey,
-				    "access_token": self.conf.weibo.access_token,
-				    "since_id": self.conf.lastMentionInCommentsId
+				    "access_token": mInstance.conf.weibo.access_token,
+				    "since_id": mInstance.conf.lastMentionInCommentsId
 				}
 
 				Weibo.Comments.mentions(para, function(data){
-					if (self.conf.debug){
+					if (mInstance.conf.debug){
 						console.log(data);
 					}	
 					if (data.comments[0] == null){
 						return;	
 					}
-					self.conf.lastMentionInCommentsId = data.comments[0].id;
+					mInstance.conf.lastMentionInCommentsId = data.comments[0].id;
 
 					for (mention in data.comments){
 						var username = data.comments[mention].user.screen_name;
@@ -214,7 +214,7 @@ module.exports = (function() {
 						var id = data.comments[mention].status.id;
 						var cid = data.comments[mention].id;
 						if (data.comments[mention].status.user.allow_all_comment){
-							self.comment(content, id, cid);
+							mInstance.comment(content, id, cid);
 							sleep.sleep(5);
 						}
 					}
@@ -224,10 +224,10 @@ module.exports = (function() {
 			// rule.hour = 8;
 			// rule.minute = 30;
 			// var postMostViewedCharacter = schedule.scheduleJob(rule, function(){
-			// 	self.specialStatus(Weibo.appKey.appKey,self.conf.access_token,"most viewed");
+			// 	mInstance.specialStatus(Weibo.appKey.appKey,mInstance.conf.access_token,"most viewed");
 			// });
 			rule = new schedule.RecurrenceRule();
-			switch (self.conf.statusesPerDay){
+			switch (mInstance.conf.statusesPerDay){
 				case 0:
 					return;
 					break;
@@ -255,7 +255,7 @@ module.exports = (function() {
 			}
 			rule.minute = 0;
 			var postRandomArticle = schedule.scheduleJob(rule, function(){
-				self.postRandomArticle();
+				mInstance.postRandomArticle();
 			});
 
 	    },
@@ -269,7 +269,7 @@ module.exports = (function() {
 	    			console.log(err);
 	    			return;
 	    		}
-	    		if (self.conf.debug){
+	    		if (mInstance.conf.debug){
 	    			console.log(data);
 	    		}
 	    		if (data != undefined && data[0] != undefined){
@@ -281,19 +281,19 @@ module.exports = (function() {
 	    				if (err || data == undefined || data[0] == undefined ){
 			    			console.log(err);
 			    		}
-			    		if (self.conf.debug){
+			    		if (mInstance.conf.debug){
 			    			console.log(data);
 			    		}
 			    		if (cid == null){
 							var para = {
 							    "source": Weibo.appKey.appKey,
-							    "access_token": self.conf.weibo.access_token,
-							    "comment": data[0].extract.substring(0,120)+"..."+self._page_short_url(data[0].pageid),
+							    "access_token": mInstance.conf.weibo.access_token,
+							    "comment": data[0].extract.substring(0,120)+"..."+mInstance._page_short_url(data[0].pageid),
 							    "id" : id
 							}
 				
 							Weibo.Comments.create(para, function(data){
-								if (self.conf.debug){
+								if (mInstance.conf.debug){
 									console.log(data);
 								}
 							});
@@ -301,13 +301,13 @@ module.exports = (function() {
 			    		else {
 							var para = {
 							    "source": Weibo.appKey.appKey,
-							    "access_token": self.conf.weibo.access_token,
-							    "comment": data[0].extract.substring(0,110)+"..."+self._page_short_url(data[0].pageid),
+							    "access_token": mInstance.conf.weibo.access_token,
+							    "comment": data[0].extract.substring(0,110)+"..."+mInstance._page_short_url(data[0].pageid),
 							    "id" : id,
 							    "cid" : cid
 							}
 							Weibo.Comments.reply(para, function(data){
-								if (self.conf.debug){
+								if (mInstance.conf.debug){
 									console.log(data);
 								}
 							});
@@ -332,7 +332,7 @@ module.exports = (function() {
 	    			console.log(err);
 	    			return;
 	    		}
-	    		if (self.conf.debug){
+	    		if (mInstance.conf.debug){
 	    			console.log(data);
 	    		}
 	    		if (data != undefined && data[0] != undefined){
@@ -344,12 +344,12 @@ module.exports = (function() {
 			    			console.log(err);
 			    			return;
 			    		}
-			    		if (self.conf.debug){
+			    		if (mInstance.conf.debug){
 			    			console.log(data);
 			    		}
 			    		if (qualityCheck){
 			    			if(data[0].extract.length < 30 || data[0].extract.indexOf('，')=='-1'){
-			    				self.postRandomArticle(); //try again.
+			    				mInstance.postRandomArticle(); //try again.
 			    				return;
 			    			}
 			    		}
@@ -357,17 +357,17 @@ module.exports = (function() {
 			    		if (username){
 			    			msg += '@'+ username+' ';
 			    		}
-			    		msg += data[0].extract.substring(0,110)+'...'+self._page_short_url(data[0].pageid);
+			    		msg += data[0].extract.substring(0,110)+'...'+mInstance._page_short_url(data[0].pageid);
 
 			    		if (data[0].thumbnail && data[0].thumbnail.source){
 			    			var form = new FormData();
 			    			form.append('source', Weibo.appKey.appKey);
-			    			form.append('access_token', self.conf.weibo.access_token);
+			    			form.append('access_token', mInstance.conf.weibo.access_token);
 			    			form.append('pic', request(data[0].thumbnail.source));
 			    			form.append('status', msg);
 			    			form.submit('https://api.weibo.com/2/statuses/upload.json', function(err, res){
 			    				res.resume();
-			    				if (self.conf.debug){
+			    				if (mInstance.conf.debug){
 				    				res.setEncoding('utf8');
 									res.on('data', function (chunk) {
 										console.log('BODY: ' + chunk);
@@ -378,16 +378,18 @@ module.exports = (function() {
 			    		} else {
 							var para = {
 								"source": Weibo.appKey.appKey,
-								"access_token": self.conf.weibo.access_token,
+								"access_token": mInstance.conf.weibo.access_token,
 							    "status": msg
 							}
 							Weibo.Statuses.update(para, function(data){
-								if (self.conf.debug){
+								if (mInstance.conf.debug){
 									console.log(data);
 								}
 							});     			
 			    		}
 			    	});
+	    		} else if (qualityCheck) {
+	    			mInstance.postRandomArticle(); //try again.
 	    		}
 
 	    	});
@@ -400,15 +402,15 @@ module.exports = (function() {
 
 	    postRandomArticle: function (){
 	    	url="http://asoiaf.huiji.wiki/api.php?action=query&list=random&rnlimit=1&format=json&rnnamespace=0"
-			var my_source = Weibo.appKey.appKey, my_token = self.conf.weibo.access_token;
+			var my_source = Weibo.appKey.appKey, my_token = mInstance.conf.weibo.access_token;
 
 			request.get(url, function(err, res, body){
 				if (!err && res.statusCode == 200) {
 					var query = JSON.parse(body).query;
 					var winner = query.random[0].title;
-					if(self.conf.debug)
+					if(mInstance.conf.debug)
 						console.log(winner);
-					self.status( winner, false, true);
+					mInstance.status( winner, false, true);
 				}
 			});
 
@@ -419,7 +421,7 @@ module.exports = (function() {
 	    },
 	    getToken: function(){
 			var jsonParas = {
-			    code: self.conf.weibo.code,
+			    code: mInstance.conf.weibo.code,
 			    grant_type:"authorization_code"
 			};
 
@@ -431,20 +433,20 @@ module.exports = (function() {
 	     * Get url of the wiki site
 	     */
 	    _url: function() {
-	      return 'http://' + self.conf.name + '.huiji.wiki';
+	      return 'http://' + mInstance.conf.name + '.huiji.wiki';
 	    },
 	    /*
 	     * Get page url on the wiki site
 	     */
 	    _page_url: function(title) {
-	      var base = self.url || self._url();
+	      var base = mInstance.url || mInstance._url();
 	      return base + '/wiki/' + title;
 	    },
 	    /*
 	     * Get short url on the wiki site
 	     */
 	    _page_short_url: function(id) {
-	      var base = self.url || self._url();
+	      var base = mInstance.url || mInstance._url();
 	      return base + '/index.php?curid=' + id;
 	    },
 	    /*
@@ -456,7 +458,7 @@ module.exports = (function() {
 	     */
 	    _err: function(err, res) {
 	      console.log(err);
-	      res.reply(self.conf.CONST.ERR);
+	      res.reply(mInstance.conf.CONST.ERR);
 	      return;
 	    }
 	};
