@@ -43,6 +43,7 @@ module.exports = (function() {
 
 	    self = this;
 
+
 	    self.conf = default_conf;
     	_.assign(self.conf, config);
 
@@ -50,6 +51,7 @@ module.exports = (function() {
 	    api = new API(self.url);
 
 	    self.app = express();
+		self.app.use(express.static(__dirname + '/public'));
 	    self.app.parent = self; // set parent to app
 
 		self.app.get('/', function(request, response) {
@@ -87,7 +89,6 @@ module.exports = (function() {
 			var server = self.app.listen( port || self.conf.port, function() {
 				// TODO: log
 				console.log("weibo server for %s starts...", self.url);
-
 				var para = {
 				    "source": Weibo.appKey.appKey,
 				    "access_token": self.conf.weibo.access_token,
@@ -219,14 +220,12 @@ module.exports = (function() {
 					}
 				});
 			});
-			rule = new schedule.RecurrenceRule();
-			rule.hour = 8;
-			rule.minute = 30;
-			var postMostViewedCharacter = schedule.scheduleJob(rule, function(){
-				self.specialStatus(Weibo.appKey.appKey,self.conf.access_token,"most viewed");
-
-
-			});
+			// rule = new schedule.RecurrenceRule();
+			// rule.hour = 8;
+			// rule.minute = 30;
+			// var postMostViewedCharacter = schedule.scheduleJob(rule, function(){
+			// 	self.specialStatus(Weibo.appKey.appKey,self.conf.access_token,"most viewed");
+			// });
 			rule = new schedule.RecurrenceRule();
 			switch (self.conf.statusesPerDay){
 				case 0:
@@ -281,7 +280,6 @@ module.exports = (function() {
 	    			api.details(param, function (err, data){
 	    				if (err || data == undefined || data[0] == undefined ){
 			    			console.log(err);
-			    			return;
 			    		}
 			    		if (self.conf.debug){
 			    			console.log(data);
@@ -297,7 +295,6 @@ module.exports = (function() {
 							Weibo.Comments.create(para, function(data){
 								if (self.conf.debug){
 									console.log(data);
-								}
 							});
 			    		}
 			    		else {
@@ -324,7 +321,7 @@ module.exports = (function() {
 
 	    },
 
-	    status: function( content, username ) {
+	    status: function( content, username, qualityCheck ) {
 	    	var param = {
 	    		key: content,
 	    		limit: 1,
@@ -349,6 +346,12 @@ module.exports = (function() {
 			    		if (self.conf.debug){
 			    			console.log(data);
 			    		}
+			    		if (qualityCheck){
+			    			if(data[0].extract.length < 30 || data[0].extract.indexOf('，')=='-1'){
+			    				self.postRandomArticle(); //try again.
+			    				return;
+			    			}
+			    		}
 			    		var msg = '';
 			    		if (username){
 			    			msg += '@'+ username+' ';
@@ -359,16 +362,16 @@ module.exports = (function() {
 			    			var form = new FormData();
 			    			form.append('source', Weibo.appKey.appKey);
 			    			form.append('access_token', self.conf.weibo.access_token);
-			    			form.append('pic', request('http://c.hiphotos.baidu.com/zhidao/wh%3D600%2C800/sign=73ae48a534d3d539c16807c50ab7c568/267f9e2f07082838a574b44fba99a9014c08f174.jpg'));
+			    			form.append('pic', request(data[0].thumbnail.source));
 			    			form.append('status', msg);
-			    			console.log(form);
 			    			form.submit('https://api.weibo.com/2/statuses/upload.json', function(err, res){
 			    				res.resume();
-			    				//console.log(res);
-			    				res.setEncoding('utf8');
-								res.on('data', function (chunk) {
-									console.log('BODY: ' + chunk);
-								});
+			    				if (self.conf.debug){
+				    				res.setEncoding('utf8');
+									res.on('data', function (chunk) {
+										console.log('BODY: ' + chunk);
+									});
+								}
 			    			});
 
 			    		} else {
@@ -404,7 +407,7 @@ module.exports = (function() {
 					var winner = query.random[0].title;
 					if(self.conf.debug)
 						console.log(winner);
-					self.status( winner, false);
+					self.status( winner, false, true);
 				}
 			});
 
