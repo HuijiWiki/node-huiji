@@ -359,12 +359,16 @@ module.exports = (function() {
 			    			var form = new FormData();
 			    			form.append('source', Weibo.appKey.appKey);
 			    			form.append('access_token', self.conf.weibo.access_token);
-			    			form.append('pic', request(data[0].thumbnail.source));
+			    			form.append('pic', request('http://c.hiphotos.baidu.com/zhidao/wh%3D600%2C800/sign=73ae48a534d3d539c16807c50ab7c568/267f9e2f07082838a574b44fba99a9014c08f174.jpg'));
 			    			form.append('status', msg);
 			    			console.log(form);
-			    			form.submit('https://upload.api.weibo.com/2/statuses/upload.json', function(err, res){
+			    			form.submit('https://api.weibo.com/2/statuses/upload.json', function(err, res){
 			    				res.resume();
-			    				console.log(res);
+			    				//console.log(res);
+			    				res.setEncoding('utf8');
+								res.on('data', function (chunk) {
+									console.log('BODY: ' + chunk);
+								});
 			    			});
 
 			    		} else {
