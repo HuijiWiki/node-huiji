@@ -128,11 +128,8 @@ module.exports = (function() {
       if (handled !== false) {
         res.reply(handled);
       } else {
-        api.details({
-          titles: [ text ],
-          // A sole message-with-pic requires a 320px-wide picture
-          size: 320
-        }, function(err, data) {
+        // 3. Into the main process, hit or search
+        self._details(text, function(err, data) {
           if (err) return self._err(err, res);
           if (data.length == 0) {
             // Message is not a precise title of any page. Try search.
@@ -140,11 +137,7 @@ module.exports = (function() {
               if (err) return self._err(err, res);
               if (titles.length == 0) return self._noresult(res);
               // Get details of these result pages
-              api.details({
-                titles: titles,
-                // TODO: size == 320 or one more API call?
-                size: 320
-              }, function(err, data) {
+              self._search_details(titles, function(err, data) {
                 if (err) return self._err(err, res);
                 // Preserve order of the searching results strictly according 
                 // to the order in titles
@@ -359,6 +352,17 @@ module.exports = (function() {
       return base + '/wiki/' + title;
     },
     /*
+     * Wrap the first api.details(), before api.search().
+     * _details() allows developers to inherit and change default parameters 
+     * for api.details() call.
+     */
+    _details: function(title, callback) {
+      api.details({
+        titles: [ title ],
+        size: 320
+      }, callback);
+    },
+    /*
      * Wrap api.search(). 
      * _search() allows developers to inherit and change default parameters 
      * for api.search() call. 
@@ -368,6 +372,17 @@ module.exports = (function() {
         key: key,
         limit: this.conf.CONST.SEARCH_LIMIT,
         target: 'default'
+      }, callback);
+    },
+    /*
+     * Wrap the second api.details(), after api.search().
+     * _search_details() allows developers to inherit and change default 
+     * parameters for api.details() call.
+     */
+    _search_details: function(titles, callback) {
+      api.details({
+        titles: titles,
+        size: 320
       }, callback);
     },
     /*
