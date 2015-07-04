@@ -115,8 +115,12 @@ module.exports = (function() {
      *      Users should call addKeyword() to add various keyword-cases.
      *      NOTICE: All intercepted keywords will not be passed into post-
      *              process.
-     *   3. Return detail information of the page queried if user's input get 
-     *      a precise hit; Otherwise, list of search results will be returned.
+     *   3. Into normal text handling process:
+     *      1) Try _details() if the text hit a title precisely,
+     *      2) do _search() if no such title is hit,
+     *      3) do _search_details() to get details of these searching results
+     *   4. filter(), filter these qualified results, usually to do an after 
+     *      hack
      */
     handlerText: function(msg, req, res, next) {
       var text = msg.Content || '';
@@ -146,11 +150,11 @@ module.exports = (function() {
                   var index = titles.indexOf(detail.title);
                   results[index] = self._single(detail);
                 });
-                res.reply(_.filter(results));
+                res.reply(self.filter(results));
               });
             });
           } else {
-            res.reply([ self._single(data[0]) ]);
+            res.reply(self.filter([ self._single(data[0]) ]));
           }
         });
       }
@@ -337,6 +341,37 @@ module.exports = (function() {
         this._keywords_key.push(key);
         this._keywords_func.push(func);
       }
+    },
+    /*
+     * Filter the results passed from handlerText(), usually to do an after 
+     * hack. 
+     * This filter() will do the followings in order:
+     *   1) call _.filter() to *results* to eliminate potential holes in 
+     *      results array.
+     *   2) call _filter() to do further filtering. However, the default 
+     *      behavior of such _filter() is to do nothing and echo the 
+     *      parameters passed in directly. Developers may override this 
+     *      _filter() to customize their own filtering.
+     *
+     * *results*, array of messages bumped after normal text handling.
+     * Return results array to be replied to users.
+     */
+    filter: function(results) {
+      var after_results = _.filter( // in caes a careless developer does not 
+                                    // check out holes in the filtered results
+        this._filter(               // call customized _filter()
+          _.filter(results)         // eliminate potential holes first
+        )
+      );
+      return (after_results.length == 0) 
+        ? this.conf.CONST.MSG_NORESULT : after_results;
+    },
+    /*
+     * Do customize filtering on the results to be replied to users. 
+     * Do nothing by default, return immediately.
+     */
+    _filter: function(results) {
+      return results;
     },
     /*
      * Get url of the wiki site
