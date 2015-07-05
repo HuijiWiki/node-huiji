@@ -115,8 +115,12 @@ module.exports = (function() {
      *      Users should call addKeyword() to add various keyword-cases.
      *      NOTICE: All intercepted keywords will not be passed into post-
      *              process.
-     *   3. Return detail information of the page queried if user's input get 
-     *      a precise hit; Otherwise, list of search results will be returned.
+     *   3. Into normal text handling process:
+     *      1) Try _details() if the text hit a title precisely,
+     *      2) do _search() if no such title is hit,
+     *      3) do _search_details() to get details of these searching results
+     *   4. filter(), filter these qualified results, usually to do an after 
+     *      hack
      */
     handlerText: function(msg, req, res, next) {
       var text = msg.Content || '';
@@ -128,11 +132,8 @@ module.exports = (function() {
       if (handled !== false) {
         res.reply(handled);
       } else {
-        api.details({
-          titles: [ text ],
-          // A sole message-with-pic requires a 320px-wide picture
-          size: 320
-        }, function(err, data) {
+        // 3. Into the main process, hit or search
+        self._details(text, function(err, data) {
           if (err) return self._err(err, res);
           if (data.length == 0) {
             // Message is not a precise title of any page. Try search.
@@ -140,11 +141,7 @@ module.exports = (function() {
               if (err) return self._err(err, res);
               if (titles.length == 0) return self._noresult(res);
               // Get details of these result pages
-              api.details({
-                titles: titles,
-                // TODO: size == 320 or one more API call?
-                size: 320
-              }, function(err, data) {
+              self._search_details(titles, function(err, data) {
                 if (err) return self._err(err, res);
                 // Preserve order of the searching results strictly according 
                 // to the order in titles
@@ -153,11 +150,11 @@ module.exports = (function() {
                   var index = titles.indexOf(detail.title);
                   results[index] = self._single(detail);
                 });
-                res.reply(_.filter(results));
+                res.reply(self.filter(results));
               });
             });
           } else {
-            res.reply([ self._single(data[0]) ]);
+            res.reply(self.filter([ self._single(data[0]) ]));
           }
         });
       }
@@ -346,6 +343,37 @@ module.exports = (function() {
       }
     },
     /*
+     * Filter the results passed from handlerText(), usually to do an after 
+     * hack. 
+     * This filter() will do the followings in order:
+     *   1) call _.filter() to *results* to eliminate potential holes in 
+     *      results array.
+     *   2) call _filter() to do further filtering. However, the default 
+     *      behavior of such _filter() is to do nothing and echo the 
+     *      parameters passed in directly. Developers may override this 
+     *      _filter() to customize their own filtering.
+     *
+     * *results*, array of messages bumped after normal text handling.
+     * Return results array to be replied to users.
+     */
+    filter: function(results) {
+      var after_results = _.filter( // in caes a careless developer does not 
+                                    // check out holes in the filtered results
+        this._filter(               // call customized _filter()
+          _.filter(results)         // eliminate potential holes first
+        )
+      );
+      return (after_results.length == 0) 
+        ? this.conf.CONST.MSG_NORESULT : after_results;
+    },
+    /*
+     * Do customize filtering on the results to be replied to users. 
+     * Do nothing by default, return immediately.
+     */
+    _filter: function(results) {
+      return results;
+    },
+    /*
      * Get url of the wiki site
      */
     _url: function() {
@@ -359,6 +387,17 @@ module.exports = (function() {
       return base + '/wiki/' + title;
     },
     /*
+     * Wrap the first api.details(), before api.search().
+     * _details() allows developers to inherit and change default parameters 
+     * for api.details() call.
+     */
+    _details: function(title, callback) {
+      api.details({
+        titles: [ title ],
+        size: 320
+      }, callback);
+    },
+    /*
      * Wrap api.search(). 
      * _search() allows developers to inherit and change default parameters 
      * for api.search() call. 
@@ -368,6 +407,17 @@ module.exports = (function() {
         key: key,
         limit: this.conf.CONST.SEARCH_LIMIT,
         target: 'default'
+      }, callback);
+    },
+    /*
+     * Wrap the second api.details(), after api.search().
+     * _search_details() allows developers to inherit and change default 
+     * parameters for api.details() call.
+     */
+    _search_details: function(titles, callback) {
+      api.details({
+        titles: titles,
+        size: 320
       }, callback);
     },
     /*
