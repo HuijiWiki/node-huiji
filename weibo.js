@@ -99,7 +99,7 @@ module.exports = (function() {
 					if (mInstance.conf.debug){
 						console.log(data);
 					}
-					if (data.statuses[0] != undefined){
+					if (data && data.statuses && data.statuses[0]){
 						mInstance.conf.lastMentionId = data.statuses[0].id;
 					}
 				});
@@ -113,7 +113,7 @@ module.exports = (function() {
 					if (mInstance.conf.debug){
 						console.log(data);
 					}
-					if (data.comments[0] != undefined){
+					if (data && data.comments && data.comments[0] != undefined){
 						mInstance.conf.lastMentionInCommentsId = data.comments[0].id;
 					}
 				});
