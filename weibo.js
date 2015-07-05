@@ -145,7 +145,7 @@ module.exports = (function() {
 					if (mInstance.conf.debug){
 						console.log(data);
 					}
-					if (!(data && data.statuses && data.statuses[0]) {
+					if (!(data && data.statuses && data.statuses[0])) {
 						return;
 					}
 					mInstance.conf.lastMentionId = data.statuses[0].id;
