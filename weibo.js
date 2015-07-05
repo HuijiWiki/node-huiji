@@ -133,6 +133,7 @@ module.exports = (function() {
 				 Thus, we will abort this job if no record found.
 				*/
 				if(mInstance.conf.lastMentionId == 0 ){
+					mInstance.conf.lastMentionId = 1;
 					return;
 				}
 				var para = {
@@ -144,8 +145,7 @@ module.exports = (function() {
 					if (mInstance.conf.debug){
 						console.log(data);
 					}
-					if (data.statuses[0] == undefined) {
-						mInstance.conf.lastMentionId = 1;
+					if (!(data && data.statuses && data.statuses[0]) {
 						return;
 					}
 					mInstance.conf.lastMentionId = data.statuses[0].id;
@@ -203,7 +203,7 @@ module.exports = (function() {
 					if (mInstance.conf.debug){
 						console.log(data);
 					}	
-					if (data.comments[0] == null){
+					if (!(data && data.comments && data.comments[0])){
 						return;	
 					}
 					mInstance.conf.lastMentionInCommentsId = data.comments[0].id;
