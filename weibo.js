@@ -337,7 +337,8 @@ module.exports = (function() {
 	    		}
 	    		if (data != undefined && data[0] != undefined){
 	    			param = {
-	    				titles: data
+	    				titles: data,
+	    				size: 500
 	    			}
 	    			api.details(param, function (err, data){
 	    				if (err || data == undefined || data[0] == undefined ){
