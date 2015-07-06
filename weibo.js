@@ -401,7 +401,7 @@ module.exports = (function() {
 	    },
 
 	    postRandomArticle: function (){
-	    	url="http://asoiaf.huiji.wiki/api.php?action=query&list=random&rnlimit=1&format=json&rnnamespace=0"
+	    	url=_url()+"/api.php?action=query&list=random&rnlimit=1&format=json&rnnamespace=0";
 			var my_source = Weibo.appKey.appKey, my_token = mInstance.conf.weibo.access_token;
 
 			request.get(url, function(err, res, body){
