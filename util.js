@@ -1,7 +1,7 @@
 var _ = require('lodash');
 
 var defaults = _.partialRight(_.assign, function(vdst, vsrc) {
-  if (typeof(vdst) == 'object') {
+  if (typeof(vdst) == 'object' && typeof(vsrc) == 'object') {
     return defaults(vdst, vsrc);
   } else {
     return _.isUndefined(vdst) ? vsrc : vdst;
