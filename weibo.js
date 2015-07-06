@@ -401,7 +401,7 @@ module.exports = (function() {
 	    },
 
 	    postRandomArticle: function (){
-	    	url = self._url()+"/api.php?action=query&list=random&rnlimit=1&format=json&rnnamespace=0";
+	    	url = mInstance._url()+"/api.php?action=query&list=random&rnlimit=1&format=json&rnnamespace=0";
 
 			request.get(url, function(err, res, body){
 				if (!err && res.statusCode == 200) {
