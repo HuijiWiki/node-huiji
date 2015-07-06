@@ -401,12 +401,14 @@ module.exports = (function() {
 	    },
 
 	    postRandomArticle: function (){
-	    	url=_url()+"/api.php?action=query&list=random&rnlimit=1&format=json&rnnamespace=0";
-			var my_source = Weibo.appKey.appKey, my_token = mInstance.conf.weibo.access_token;
+	    	url = self._url()+"/api.php?action=query&list=random&rnlimit=1&format=json&rnnamespace=0";
 
 			request.get(url, function(err, res, body){
 				if (!err && res.statusCode == 200) {
 					var query = JSON.parse(body).query;
+					if (!query.random){
+						return; //err handle
+					}
 					var winner = query.random[0].title;
 					if(mInstance.conf.debug)
 						console.log(winner);
