@@ -89,144 +89,142 @@ module.exports = (function() {
 			var server = mInstance.app.listen( port || mInstance.conf.port, function() {
 				// TODO: log
 				console.log("weibo server for %s starts...", mInstance.url);
-				var para = {
-				    "source": Weibo.appKey.appKey,
-				    "access_token": mInstance.conf.weibo.access_token,
-				    "since_id": mInstance.conf.lastMentionId,
-				    "count": 1
-				}
-				Weibo.Statuses.mentions(para, function(data){
-					if (mInstance.conf.debug){
-						console.log(data);
-					}
-					if (data && data.statuses && data.statuses[0]){
-						mInstance.conf.lastMentionId = data.statuses[0].id;
-					}
-				});
-				var para = {
-				    "source": Weibo.appKey.appKey,
-				    "access_token": mInstance.conf.weibo.access_token,
-				    "since_id": mInstance.conf.weibo.lastMentionInCommentsId,
-				    "count": 1
-				}
-				Weibo.Comments.mentions(para, function(data){
-					if (mInstance.conf.debug){
-						console.log(data);
-					}
-					if (data && data.comments && data.comments[0] != undefined){
-						mInstance.conf.lastMentionInCommentsId = data.comments[0].id;
-					}
-				});
-				if(mInstance.conf.debug){
-			 		//adapter.random(Weibo.appKey.appKey,this.conf.access_token);
-			 	}
+				// var para = {
+				//     "source": Weibo.appKey.appKey,
+				//     "access_token": mInstance.conf.weibo.access_token,
+				//     "since_id": mInstance.conf.lastMentionId,
+				//     "count": 1
+				// }
+				// Weibo.Statuses.mentions(para, function(data){
+				// 	if (mInstance.conf.debug){
+				// 		console.log(data);
+				// 	}
+				// 	if (data && data.statuses && data.statuses[0]){
+				// 		mInstance.conf.lastMentionId = data.statuses[0].id;
+				// 	}
+				// });
+				// var para = {
+				//     "source": Weibo.appKey.appKey,
+				//     "access_token": mInstance.conf.weibo.access_token,
+				//     "since_id": mInstance.conf.weibo.lastMentionInCommentsId,
+				//     "count": 1
+				// }
+				// Weibo.Comments.mentions(para, function(data){
+				// 	if (mInstance.conf.debug){
+				// 		console.log(data);
+				// 	}
+				// 	if (data && data.comments && data.comments[0] != undefined){
+				// 		mInstance.conf.lastMentionInCommentsId = data.comments[0].id;
+				// 	}
+				// });
+
 			});
 			server.on('error', function(err) {
 				console.log(err);
 			});
-			var rule = new schedule.RecurrenceRule();
-			rule.second = 1;
+			// var rule = new schedule.RecurrenceRule();
+			// rule.second = 1;
 
-			var replyToMentions = schedule.scheduleJob(rule, function(){
-				/*if no last mention found in record, then it must have
-				 been called before we finish initialization.
-				 Thus, we will abort this job if no record found.
-				*/
-				if(mInstance.conf.lastMentionId == 0 ){
-					mInstance.conf.lastMentionId = 1;
-					return;
-				}
-				var para = {
-				    "source": Weibo.appKey.appKey,
-				    "access_token": mInstance.conf.weibo.access_token,
-				    "since_id": mInstance.conf.lastMentionId
-				}
-				Weibo.Statuses.mentions(para, function(data){
-					if (mInstance.conf.debug){
-						console.log(data);
-					}
-					if (!(data && data.statuses && data.statuses[0])) {
-						return;
-					}
-					mInstance.conf.lastMentionId = data.statuses[0].id;
+			// var replyToMentions = schedule.scheduleJob(rule, function(){
+			// 	/*if no last mention found in record, then it must have
+			// 	 been called before we finish initialization.
+			// 	 Thus, we will abort this job if no record found.
+			// 	*/
+			// 	if(mInstance.conf.lastMentionId == 0 ){
+			// 		mInstance.conf.lastMentionId = 1;
+			// 		return;
+			// 	}
+			// 	var para = {
+			// 	    "source": Weibo.appKey.appKey,
+			// 	    "access_token": mInstance.conf.weibo.access_token,
+			// 	    "since_id": mInstance.conf.lastMentionId
+			// 	}
+			// 	Weibo.Statuses.mentions(para, function(data){
+			// 		if (mInstance.conf.debug){
+			// 			console.log(data);
+			// 		}
+			// 		if (!(data && data.statuses && data.statuses[0])) {
+			// 			return;
+			// 		}
+			// 		mInstance.conf.lastMentionId = data.statuses[0].id;
 
-					for (mention in data.statuses){
-						var username = data.statuses[mention].user.screen_name;
-						var content = data.statuses[mention].text;
-						if (data.statuses[mention].retweeted_status!=null){
-							if (content.indexOf('@冰与火之歌中文维基') == -1 ){
-								return;
-								/* Hard code is bad... To be changed*/
-							}
-							if (content.indexOf('@冰与火之歌中文维基') > content.indexOf('//') && content.indexOf('//')!= -1 ){
-								return;
-								/* Hard code is bad... To be changed*/
-							}
-						}
-						content = content.replace(/(|^)@\S+/g,'').replace(/ /g,'');;
-						if (content.indexOf('//')!= -1){
-							content = content.substring(0, content.indexOf('//'));					
-						}
+			// 		for (mention in data.statuses){
+			// 			var username = data.statuses[mention].user.screen_name;
+			// 			var content = data.statuses[mention].text;
+			// 			if (data.statuses[mention].retweeted_status!=null){
+			// 				if (content.indexOf('@冰与火之歌中文维基') == -1 ){
+			// 					return;
+			// 					/* Hard code is bad... To be changed*/
+			// 				}
+			// 				if (content.indexOf('@冰与火之歌中文维基') > content.indexOf('//') && content.indexOf('//')!= -1 ){
+			// 					return;
+			// 					/* Hard code is bad... To be changed*/
+			// 				}
+			// 			}
+			// 			content = content.replace(/(|^)@\S+/g,'').replace(/ /g,'');;
+			// 			if (content.indexOf('//')!= -1){
+			// 				content = content.substring(0, content.indexOf('//'));					
+			// 			}
 
-						var id = data.statuses[mention].id;
+			// 			var id = data.statuses[mention].id;
 
-						if (data.statuses[mention].user.allow_all_comment){
-							mInstance.comment(content, id, null);
-							sleep.sleep(5);
-						}else{		
-							mInstance.status(content, username);
-							sleep.sleep(5);
+			// 			if (data.statuses[mention].user.allow_all_comment){
+			// 				mInstance.comment(content, id, null);
+			// 				sleep.sleep(5);
+			// 			}else{		
+			// 				mInstance.status(content, username);
+			// 				sleep.sleep(5);
 
-						}
-					}
-				});
-			});
-			rule = new schedule.RecurrenceRule();
-			rule.second = 30;
-			var replayToMentionsInComments = schedule.scheduleJob(rule, function(){
-				/*if no last comment found in record, then it must have
-				 been called before we finish initialization.
-				 Thus, we will abort this job if no record found.
-				*/
-				if(mInstance.conf.lastMentionInCommentsId == 0 ){
-					mInstance.conf.lastMentionInCommentsId = 1;
-					return;
-				}
+			// 			}
+			// 		}
+			// 	});
+			// });
+			// rule = new schedule.RecurrenceRule();
+			// rule.second = 30;
+			// var replayToMentionsInComments = schedule.scheduleJob(rule, function(){
+			// 	/*if no last comment found in record, then it must have
+			// 	 been called before we finish initialization.
+			// 	 Thus, we will abort this job if no record found.
+			// 	*/
+			// 	if(mInstance.conf.lastMentionInCommentsId == 0 ){
+			// 		mInstance.conf.lastMentionInCommentsId = 1;
+			// 		return;
+			// 	}
 
-				var para = {
-				    "source": Weibo.appKey.appKey,
-				    "access_token": mInstance.conf.weibo.access_token,
-				    "since_id": mInstance.conf.lastMentionInCommentsId
-				}
+			// 	var para = {
+			// 	    "source": Weibo.appKey.appKey,
+			// 	    "access_token": mInstance.conf.weibo.access_token,
+			// 	    "since_id": mInstance.conf.lastMentionInCommentsId
+			// 	}
 
-				Weibo.Comments.mentions(para, function(data){
-					if (mInstance.conf.debug){
-						console.log(data);
-					}	
-					if (!(data && data.comments && data.comments[0])){
-						return;	
-					}
-					mInstance.conf.lastMentionInCommentsId = data.comments[0].id;
+			// 	Weibo.Comments.mentions(para, function(data){
+			// 		if (mInstance.conf.debug){
+			// 			console.log(data);
+			// 		}	
+			// 		if (!(data && data.comments && data.comments[0])){
+			// 			return;	
+			// 		}
+			// 		mInstance.conf.lastMentionInCommentsId = data.comments[0].id;
 
-					for (mention in data.comments){
-						var username = data.comments[mention].user.screen_name;
-						var content = data.comments[mention].text.replace(/(|^)@\S+/,'');
-						var id = data.comments[mention].status.id;
-						var cid = data.comments[mention].id;
-						if (data.comments[mention].status.user.allow_all_comment){
-							mInstance.comment(content, id, cid);
-							sleep.sleep(5);
-						}
-					}
-				});
-			});
+			// 		for (mention in data.comments){
+			// 			var username = data.comments[mention].user.screen_name;
+			// 			var content = data.comments[mention].text.replace(/(|^)@\S+/,'');
+			// 			var id = data.comments[mention].status.id;
+			// 			var cid = data.comments[mention].id;
+			// 			if (data.comments[mention].status.user.allow_all_comment){
+			// 				mInstance.comment(content, id, cid);
+			// 				sleep.sleep(5);
+			// 			}
+			// 		}
+			// 	});
+			// });
 			// rule = new schedule.RecurrenceRule();
 			// rule.hour = 8;
 			// rule.minute = 30;
 			// var postMostViewedCharacter = schedule.scheduleJob(rule, function(){
 			// 	mInstance.specialStatus(Weibo.appKey.appKey,mInstance.conf.access_token,"most viewed");
 			// });
-			rule = new schedule.RecurrenceRule();
+			var rule = new schedule.RecurrenceRule();
 			switch (mInstance.conf.statusesPerDay){
 				case 0:
 					return;
