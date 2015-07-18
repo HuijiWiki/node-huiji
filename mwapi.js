@@ -127,7 +127,8 @@ module.exports = (function() {
      * Will generate api GET url for list=search, using following parameters:
      *   srsearch, required,
      *   srnamespace, ['0'] by default,
-     *   srwhat, 'title' by default,
+     *   srwhat, 'text' by default, [text|nearmatch] is allowed, 'title' is no 
+     *     longer supported, will fallback to 'text',
      *   srinfo, no use,
      *   srprop, no use,
      *   sroffset, no use,
@@ -143,9 +144,9 @@ module.exports = (function() {
     search: function(o) {
       if (_.isEmpty(o)) return '';
       if (!o.srsearch) return '';
-      var srwhat = o.srwhat || 'title';
-      if (_.indexOf(['title', 'text', 'nearmatch'], srwhat) < 0) 
-        srwhat = 'title';
+      var srwhat = o.srwhat || 'text';
+      if (_.indexOf(['text', 'nearmatch'], srwhat) < 0) 
+        srwhat = 'text';
       var srnamespace = o.srnamespace || [0];
       var srlimit = o.srlimit || 10;
       srlimit = (srlimit > 50) ? 50 : (srlimit < 1 ? 1 : srlimit);
