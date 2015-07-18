@@ -52,12 +52,21 @@ module.exports = (function() {
      */
     if (!config) return;
     if (!config.name || !config.wechat) return;
-    var wechat_required = _.every(['token', 'appid', 'encodingAESKey'], function(n) {
-      return _.has(config.wechat, n);
-    });
+    var wechat_required = 
+      _.every(['token', 'appid', 'encodingAESKey'], function(n) {
+        return _.has(config.wechat, n);
+      });
     if (!wechat_required) return;
 
+    // copy default configurations if they are not set
     this.conf = util.defaults(config, default_conf);
+    // check CONST.MSG_X's type, either string or array
+    var msg_checked = 
+      _.every(['MSG_ERR', 'MSG_NORESULT', 'MSG_SUBSCRIBE'], function(e) {
+        var MSG = this.conf.CONST[e];
+        return _.isString(MSG) || _.isArray(MSG);
+      }, this);
+    if (!msg_checked) return;
     
     this.url = this._url();
     api = new API(this.url);
@@ -424,34 +433,61 @@ module.exports = (function() {
      * Called when an error occurs. Respond plain text conf.CONST.MSG_ERR to 
      * client by default. 
      *
+     * Now rolling message is supported. conf.CONST.MSG_ERR could be an array, 
+     * _err() will choose one of them randomly. Even an object which 
+     * represents a reply-with-pic is allowed to be in the array. 
+     *
      * *err*, message of the error, will be logged.
      * *res*, will call res.reply() to respond to client.
      */
     _err: function(err, res) {
       console.log(err);
-      res.reply(this.conf.CONST.MSG_ERR);
+      var MSG_ERR = this.conf.CONST.MSG_ERR;
+      if (_.isArray(MSG_ERR)) {
+        res.reply(_.sample(MSG_ERR));
+      } else {
+        res.reply(MSG_ERR);
+      }
       return;
     },
     /*
      * Called when no results to respond. Respond plain text 
      * conf.CONST.MSG_NORESULT to client by default.
      *
+     * Now rolling message is supported. conf.CONST.MSG_NORESULT could be an 
+     * array, _noresult() will choose one of them randomly. Even an object 
+     * which represents a reply-with-pic is allowed to be in the array. 
+     *
      * *res*, will call res.reply() to respond to client.
      */
     _noresult: function(res) {
       console.log('NO RESULTS');
-      res.reply(this.conf.CONST.MSG_NORESULT);
+      var MSG_NORESULT = this.conf.CONST.MSG_NORESULT;
+      if (_.isArray(MSG_NORESULT)) {
+        res.reply(_.sample(MSG_NORESULT));
+      } else {
+        res.reply(MSG_NORESULT);
+      }
       return;
     },
     /*
      * Called when a user subscribes. Respond plain text 
      * conf.CONST.MSG_SUBSCRIBE to client by default.
      *
+     * Now rolling message is supported. conf.CONST.MSG_SUBSCRIBE could be an 
+     * array, _subscribe() will choose one of them randomly. Even an object 
+     * which represents a reply-with-pic is allowed to be in the array. 
+     *
      * *res*, will call res.reply() to respond to client.
      */
     _subscribe: function(res) {
       console.log('SUBSCRIBE');
-      res.reply(this.conf.CONST.MSG_SUBSCRIBE);
+      var MSG_SUBSCRIBE = this.conf.CONST.MSG_SUBSCRIBE;
+      if (_.isArray(MSG_SUBSCRIBE)) {
+        res.reply(_.sample(MSG_SUBSCRIBE));
+      } else {
+        res.reply(MSG_SUBSCRIBE);
+      }
       return;
     },
     /*
