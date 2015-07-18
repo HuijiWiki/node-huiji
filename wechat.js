@@ -15,7 +15,7 @@ module.exports = (function() {
       MSG_SUBSCRIBE: '感谢您关注本维基公众号！本维基依托于灰机维基平台。灰机，带你飞！',
       PIC_PLACEHOLDER: 'http://home.huiji.wiki/uploads/8/81/Wechat_placeholder_logo.png',
       EXTRACT_REPLY_LIMIT: 160,
-      SEARCH_LIMIT: 10
+      SEARCH_LIMIT: 7
     }
   };
 
