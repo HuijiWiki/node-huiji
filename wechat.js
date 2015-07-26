@@ -139,6 +139,11 @@ module.exports = (function() {
       text = self.hack(text);
       // 2. keyword()
       var handled = self.keyword(text);
+      /*
+       * keyword() supports complicated keyword handlers. Asynchronized logic 
+       * is supported but such handler must return a node-style function. 
+       * keyword() will transform it into a Promise.
+       */
       if (Q.isPromiseAlike(handled)) {
         handled.then(
           function keyword_resolved(ret) {
@@ -290,10 +295,10 @@ module.exports = (function() {
      * Such special keyword-cases will be handled only in functions added by 
      * addKeyword() and will not be passed to following process. 
      *
-     * Return response if handled; false otherwise.
-     *
-     * UPDATE: 2015-07-26
-     * We may call api in keyword functions so now we return a promise rather than a static value.
+     * Return false if keyword not hit; Otherwise, return,
+     *   1. A value, that will be replied to client at once,
+     *   2. A Promise, that is transformed from a node-style function 
+     *      configured by developer.
      */
     keyword: function(msg) {
       if (!msg && msg != 0) return false;
@@ -339,8 +344,10 @@ module.exports = (function() {
      * the following code is similar to code of addHack(). 
      * *key* is similar to those for addHack(). However, 
      * *func* is a function which accepts users' input that produces the 
-     * output and responds to client directly.
-     *
+     * output and responds to client directly. It could yield a value which 
+     * will be replied to client at once; Or yield a node-style function which 
+     * will be transformed into a Promise if it contains asynchronized logic.
+     * 
      * handlerText() will handle keyword-cases after hack(). Those inputs that 
      * hit a keyword-case will be handled only in corresponding *func* and will 
      * not be passed to following process. 
