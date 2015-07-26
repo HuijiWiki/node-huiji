@@ -2,6 +2,7 @@ module.exports = (function() {
   var wechat = require('wechat');
   var express = require('express');
   var _ = require('lodash');
+  var Q = require('q');
 
   var util = require('./util.js');
   var API = require('./api.js');
@@ -138,7 +139,16 @@ module.exports = (function() {
       text = self.hack(text);
       // 2. keyword()
       var handled = self.keyword(text);
-      if (handled !== false) {
+      if (Q.isPromiseAlike(handled)) {
+        handled.then(
+          function keyword_resolved(ret) {
+            res.reply(ret);
+          }, 
+          function keyword_rejected(err) {
+            self._err(err, res);
+          }
+        );
+      } else if (handled !== false) {
         res.reply(handled);
       } else {
         // 3. Into the main process, hit or search
@@ -281,6 +291,9 @@ module.exports = (function() {
      * addKeyword() and will not be passed to following process. 
      *
      * Return response if handled; false otherwise.
+     *
+     * UPDATE: 2015-07-26
+     * We may call api in keyword functions so now we return a promise rather than a static value.
      */
     keyword: function(msg) {
       if (!msg && msg != 0) return false;
@@ -288,7 +301,16 @@ module.exports = (function() {
       var res = undefined;
 
       function hit(func) {
-        res = func(msg);
+        /*
+         * Pass *self* which points to wechat itself into keyword functions
+         * This is useful for those complicated keyword handler. 
+         * For those asynchronize handler, a node-style function should be 
+         * returned. Promise related stuff will be handled here.
+         */
+        res = func.call(self, msg);
+        if (typeof(res) == 'function') {
+          res = Q.denodeify(res)();
+        }
         handled = true;
         return false;
       }

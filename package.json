@@ -9,6 +9,7 @@
   "dependencies": {
     "request": "*", 
     "lodash": "*",
+    "q": "*",
     "wechat": "*",
     "express": "*",
     "node-schedule": "*",
