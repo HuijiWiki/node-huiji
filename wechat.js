@@ -443,8 +443,7 @@ module.exports = (function() {
     _search: function(key, callback) {
       api.search({
         key: key,
-        limit: this.conf.CONST.SEARCH_LIMIT,
-        target: 'default'
+        limit: this.conf.CONST.SEARCH_LIMIT
       }, callback);
     },
     /*

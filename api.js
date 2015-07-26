@@ -91,11 +91,6 @@ module.exports = (function() {
      *   key, required, string, the keyword to search,
      *   limit, optional, int, length of searching results, 10 by default, no 
      *   more than 50,
-     *   target, optional, string, the target to search, available values are: 
-     *     title, pages matched if their titles contain the keyword,
-     *     text, pages matched if their text contain the keyword,
-     *     default, first match title then match text until *limit* results 
-     *     are collected.
      *   namespace, optional, array of int, under what namespace to search, 
      *     [0] by default.
      *   TODO:
@@ -112,14 +107,11 @@ module.exports = (function() {
       if (!o.key) return callback('search(): parameter o.key NOT FOUND.');
       var limit = o.limit || 10;
       limit = (limit > 50) ? 50 : (limit < 1 ? 1 : limit);
-      var target = o.target || 'default';
-      if (['title', 'text', 'default'].indexOf(target) < 0) target = 'default';
       var namespace = o.namespace || [0];
       var p = {};
       p.list = {
         search: {
           srsearch: o.key,
-          srwhat: (target == 'text' ? 'text': 'title'),
           srnamespace: namespace,
           srlimit: limit
         }
@@ -129,22 +121,7 @@ module.exports = (function() {
       mwapi.query(p, url, function(err, data) {
         if (err) return callback(err);
         var res = _.pluck(data.query.search, 'title');  //  TODO: sort
-        if (target != 'default') return callback('', res);
-        // Handle target == 'default' case
-        var lenTitle = res.length;
-        if (lenTitle >= limit) return callback('', res);
-        // Do another search with target == 'text', try best to get up to 
-        // *limit* results.
-        p.list.search.srwhat = 'text';
-        mwapi.query(p, url, function(err, data) {
-          if (err) return callback(err);
-          var resText = _.pluck(data.query.search, 'title');  //  TODO: sort
-          res = _.union(res, resText);
-          // If number of the results after union exceeds *limit*, 
-          // drop unneccessary ones.
-          res = _.slice(res, 0, limit);
-          return callback('', res);
-        });
+        return callback('', res);
       });
     }
   };
