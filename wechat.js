@@ -174,11 +174,11 @@ module.exports = (function() {
                   var index = titles.indexOf(detail.title);
                   results[index] = self._single(detail);
                 });
-                res.reply(self.filter(results));
+                self._reply(results, res);
               });
             });
           } else {
-            res.reply(self.filter([ self._single(data[0]) ]));
+            self._reply([ self._single(data[0]) ], res);
           }
         });
       }
@@ -401,8 +401,7 @@ module.exports = (function() {
           _.filter(results)         // eliminate potential holes first
         )
       );
-      return (after_results.length == 0) 
-        ? this.conf.CONST.MSG_NORESULT : after_results;
+      return after_results;
     },
     /*
      * Do customize filtering on the results to be replied to users. 
@@ -543,6 +542,19 @@ module.exports = (function() {
         url: this._page_url(res.title),
         picurl: picurl
       };
+    },
+    /*
+     * Called when to reply to clients.
+     * Will call filter() to eliminate unwanted results before reply.
+     *
+     * *results*, array of messages to reply to clients. Each messages should 
+     *   be in the exact format coming out from _single().
+     * *res*, will call res.reply() to respond to client.
+     */
+    _reply: function(results, res) {
+      var results = self.filter(results);
+      if (results.length == 0) self._noresult(res);
+      else res.reply(results);
     }
   };
   
