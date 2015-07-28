@@ -405,10 +405,24 @@ module.exports = (function() {
     },
     /*
      * Do customize filtering on the results to be replied to users. 
-     * Do nothing by default, return immediately.
+     * Something happened when our site changes its default search engine. 
+     * The result extracts will contain unexpected text and search result 
+     * may contain pages under legacy namespace of wikia. 
+     * We customized default behavior of the following _filter() for our own 
+     * platform, so that this part of code is not universal applicable. 
      */
     _filter: function(results) {
-      return results;
+      var reg_filter = /(^用户博客|^TV talk|@comment)/;
+      return _.filter(results, function(msg) {
+        var qualified = !reg_filter.test(msg.title);    // filter legacy namespaces
+        if (qualified) {
+          var desc = msg.description;
+          var index = desc.indexOf('↑');
+          if (index >= 0)
+            msg.description = desc.substring(0, index); // filter tailing ref test
+        }
+        return qualified;
+      });
     },
     /*
      * Get url of the wiki site
