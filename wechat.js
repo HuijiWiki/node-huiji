@@ -3,10 +3,12 @@ module.exports = (function() {
   var express = require('express');
   var _ = require('lodash');
   var Q = require('q');
+  var LRU = require('lru-cache');
 
   var util = require('./util.js');
   var API = require('./api.js');
   var api = null;	// API caller
+  var cache = null;     // cache
   var self = null;	// point to WeChat itself
   var default_conf = {
     port: 80,
@@ -17,6 +19,13 @@ module.exports = (function() {
       PIC_PLACEHOLDER: 'http://home.huiji.wiki/uploads/8/81/Wechat_placeholder_logo.png',
       EXTRACT_REPLY_LIMIT: 160,
       SEARCH_LIMIT: 7
+    },
+    cache: {
+      max: 10000,
+      dispose: function(k, v) {
+        console.log('cache drop: %s', k);
+      },
+      maxAge: 1000 * 60 * 60 * 24
     }
   };
 
@@ -71,6 +80,8 @@ module.exports = (function() {
     
     this.url = this._url();
     api = new API(this.url);
+
+    if (this.conf.cache) cache = LRU(this.conf.cache);
 
     // used for hack
     this._hack_key = [];
@@ -137,7 +148,10 @@ module.exports = (function() {
       console.log("Text message recv: %s", text);
       // 1. hack()
       text = self.hack(text);
-      // 2. keyword()
+      // 2. cache
+      var cached = self._cache_get(text);
+      if (cached) return self._reply(text, cached, res);
+      // 3. keyword()
       var handled = self.keyword(text);
       /*
        * keyword() supports complicated keyword handlers. Asynchronized logic 
@@ -147,16 +161,16 @@ module.exports = (function() {
       if (Q.isPromiseAlike(handled)) {
         handled.then(
           function keyword_resolved(ret) {
-            res.reply(ret);
+            self._reply(text, ret, res, true);
           }, 
           function keyword_rejected(err) {
             self._err(err, res);
           }
         );
       } else if (handled !== false) {
-        res.reply(handled);
+        self._reply(text, handled, res, true);
       } else {
-        // 3. Into the main process, hit or search
+        // 4. Into the main process, hit or search
         self._details(text, function(err, data) {
           if (err) return self._err(err, res);
           if (data.length == 0) {
@@ -174,11 +188,11 @@ module.exports = (function() {
                   var index = titles.indexOf(detail.title);
                   results[index] = self._single(detail);
                 });
-                self._reply(results, res);
+                self._reply(text, results, res);
               });
             });
           } else {
-            self._reply([ self._single(data[0]) ], res);
+            self._reply(text, [ self._single(data[0]) ], res);
           }
         });
       }
@@ -438,6 +452,29 @@ module.exports = (function() {
       return base + '/wiki/' + title;
     },
     /*
+     * Get value by key from cache
+     * if cache is not set, return null.
+     */
+    _cache_get: function(key) {
+      if (!cache) return null;
+      var cached = cache.get(key);
+      if (cached) console.log('cache hit: %s', key);
+      return cached;
+    },
+    /*
+     * Write <key, value> into cache
+     * if *key* already exists in cache, do not do an additional write.
+     * Return false if cache is not set or if the key already exists; 
+     * Otherwise, return true if a cache-write succeeds.
+     */
+    _cache_set: function(key, value) {
+      if (!cache) return false;
+      if (cache.has(key)) return false;
+      console.log('cache write: %s', key);
+      cache.set(key, value);
+      return true;
+    },
+    /*
      * Wrap the first api.details(), before api.search().
      * _details() allows developers to inherit and change default parameters 
      * for api.details() call.
@@ -561,14 +598,21 @@ module.exports = (function() {
      * Called when to reply to clients.
      * Will call filter() to eliminate unwanted results before reply.
      *
+     * *key*, hacked (or not if not hit) message from clients.
      * *results*, array of messages to reply to clients. Each messages should 
      *   be in the exact format coming out from _single().
      * *res*, will call res.reply() to respond to client.
+     * *raw*, whether to do extended post-process (e.g. filter)  to the 
+     * *results*, false by default.
      */
-    _reply: function(results, res) {
-      var results = self.filter(results);
-      if (results.length == 0) self._noresult(res);
-      else res.reply(results);
+    _reply: function(key, results, res, raw) {
+      raw = raw || false;
+      if (!raw) results = this.filter(results);
+      if (results.length == 0) this._noresult(res);
+      else {
+        this._cache_set(key, results);
+        res.reply(results);
+      }
     }
   };
   
