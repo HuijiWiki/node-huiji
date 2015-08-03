@@ -9,6 +9,10 @@ module.exports = (function() {
   var API = require('./api.js');
   var api = null;	// API caller
   var cache = null;     // cache
+  var CACHE_USE = 1;
+  var CACHE_NOUSE = 0;  // when the value of a cache entry equals CACHE_NOUSE, 
+                        // wechat will not do cache write for such key anymore 
+                        // it is been set to CACHE_USE later.
   var self = null;	// point to WeChat itself
   var default_conf = {
     port: 80,
@@ -464,13 +468,28 @@ module.exports = (function() {
     /*
      * Write <key, value> into cache
      * if *key* already exists in cache, do not do an additional write.
-     * Return false if cache is not set or if the key already exists; 
+     * if such entry is protected by CACHE_NOUSE, do not write neither.
+     *
+     * Return false if cache is not set or a cache write does not happen.
      * Otherwise, return true if a cache-write succeeds.
      */
     _cache_set: function(key, value) {
       if (!cache) return false;
-      if (cache.has(key)) return false;
+      if (cache.has(key) && cache.peek(key) != CACHE_USE)
+        return false;
       console.log('cache write: %s', key);
+      cache.set(key, value);
+      return true;
+    },
+    /*
+     * Force write <key, value> into cache
+     * No matter if it already exists or is protected by CACHE_NOUSE
+     */
+    _cache_write: function(key, value) {
+      if (!cache) return false;
+      if (value == CACHE_NOUSE) console.log('cache protect: %s', key);
+      else if (value == CACHE_USE) console.log('cache unlock: %s', key);
+      else console.log('cache write: %s', key);
       cache.set(key, value);
       return true;
     },
@@ -615,6 +634,9 @@ module.exports = (function() {
       }
     }
   };
+
+  WeChat.CACHE_USE = CACHE_USE;
+  WeChat.CACHE_NOUSE = CACHE_NOUSE;
   
   return WeChat;
 }());
