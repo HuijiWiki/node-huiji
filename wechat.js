@@ -52,6 +52,11 @@ module.exports = (function() {
    */
   var WeChat = function(config) {
     /*
+     * To avoid multiple WeChat instances intervene with each other, 
+     * let it be Singleton
+     */
+    if (self != null) return self;
+    /*
      * *config* is required, 
      *   config.name,
      *   config.wechat,
@@ -101,7 +106,7 @@ module.exports = (function() {
       .link(this.handlerLink)
       .event(this.handlerEvent)
       .middlewarify());
-    // handlerXXX() functions need such self to point to WeChat instance itself
+    // Singleton self points to WeChat instance itself
     self = this;
   };
   
