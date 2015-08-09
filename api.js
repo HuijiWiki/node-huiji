@@ -123,6 +123,16 @@ module.exports = (function() {
         var res = _.pluck(data.query.search, 'title');  //  TODO: sort
         return callback('', res);
       });
+    },
+    /*
+     *
+     */
+    login: function() {
+    },
+    /*
+     *
+     */
+    edit: function(o, callback) {
     }
   };
   

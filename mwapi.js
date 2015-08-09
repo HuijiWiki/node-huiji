@@ -255,6 +255,21 @@ module.exports = (function() {
       this.send(url, callback);
     },
     /*
+     *
+     */
+    login: function(username, password, callback) {
+    },
+    /*
+     *
+     */
+    token: function() {
+    },
+    /*
+     *
+     */
+    edit: function() {
+    },
+    /*
      * Do request to *url*, e.g., 
      * http://lotr.huiji.wiki/api.php?action=query&prop=extracts&exlimit=
      */
