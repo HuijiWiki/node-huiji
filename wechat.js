@@ -436,6 +436,12 @@ module.exports = (function() {
         var qualified = !reg_filter.test(msg.title);    // filter legacy namespaces
         if (qualified) {
           var desc = msg.description;
+          // TODO: added temporarily to debug
+          if (!desc) {
+            console.log(msg.title);
+            console.log(msg);
+            // let exception happened
+          }
           var index = desc.indexOf('↑');
           if (index >= 0)
             msg.description = desc.substring(0, index); // filter tailing ref test
