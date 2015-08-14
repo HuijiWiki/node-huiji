@@ -438,6 +438,7 @@ module.exports = (function() {
           var desc = msg.description;
           // TODO: added temporarily to debug
           if (!desc) {
+            console.log('###DEBUG###');
             console.log(msg.title);
             console.log(msg);
             // let exception happened
