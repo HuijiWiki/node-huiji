@@ -155,7 +155,9 @@ module.exports = (function() {
       text = self.hack(text);
       // 2. cache
       var cached = self._cache_get(text);
-      if (cached) return self._reply(text, cached, res);
+      // Since cached results have been post-processed (e.g., filtere, or not),
+      // we need not to do once more when returning cached results.
+      if (cached) return self._reply(text, cached, res, true);
       // 3. keyword()
       var handled = self.keyword(text);
       /*
@@ -433,19 +435,20 @@ module.exports = (function() {
     _filter: function(results) {
       var reg_filter = /(^用户博客|^TV talk|@comment)/;
       return _.filter(results, function(msg) {
+        // Keep plain text result if it happened to exist in *results*
+        // Such result is not supposed to exist but we add code here to avoid 
+        // exceptions.
+        if (typeof(msg) != 'object') return true;
         var qualified = !reg_filter.test(msg.title);    // filter legacy namespaces
         if (qualified) {
           var desc = msg.description;
-          // TODO: added temporarily to debug
-          if (!desc) {
-            console.log('###DEBUG###');
-            console.log(msg.title);
-            console.log(msg);
-            // let exception happened
+          // Under certain circumstances, desc could be empty
+          // Bypass following process
+          if (desc) {
+            var index = desc.indexOf('↑');
+            if (index >= 0)
+              msg.description = desc.substring(0, index); // filter tailing ref test
           }
-          var index = desc.indexOf('↑');
-          if (index >= 0)
-            msg.description = desc.substring(0, index); // filter tailing ref test
         }
         return qualified;
       });
