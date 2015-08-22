@@ -136,6 +136,21 @@ describe('query()', function() {
 });
 
 describe('login()', function() {
+  it('a failed login()', function(done) {
+    var o = {
+      'lgname': 'Test',
+      'lgpassword': 'xxx'
+    };
+    var url = 'http://lotr.huiji.wiki';
+    mwapi.login(o, url, function(err, res) {
+      o.lgtoken = res.token;
+      o.jar = res.jar;
+      mwapi.login(o, url, function(err, res) {
+        res.should.have.property('result', 'WrongPass');
+        done();
+      });
+    });
+  });
   it('a full login()', function(done) {
     var o = {
       'lgname': 'Test',

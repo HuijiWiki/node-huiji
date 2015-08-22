@@ -1,17 +1,17 @@
 var API = require('../api.js');
-var api = new API('http://lotr.huiji.wiki');
+var api = new API('http://asoiaf.huiji.wiki');
 
 describe('details()', function() {
   it('no callback', function() {
     api.details({
-      titles: ['芬威', '芬罗德', '费艾诺'],
+      titles: ['学士', '学城', '旧镇'],
       abstracts: 500,
       size: 320
-    }).should.equal('&titles=芬威|芬罗德|费艾诺&prop=extracts|pageimages&exlimit=3&exintro=&explaintext=&exsectionformat=plain&pilimit=3&pithumbsize=320');
+    }).should.equal('&titles=学士|学城|旧镇&prop=extracts|pageimages&exlimit=3&exintro=&explaintext=&exsectionformat=plain&pilimit=3&pithumbsize=320');
   });
   it('ok', function(done) {
     api.details({
-      titles: ['芬威', '芬罗德', '费艾诺'],
+      titles: ['学士', '学城', '旧镇'],
       abstracts: 500,
       size: 320
     }, function(err, data) {
@@ -29,7 +29,6 @@ describe('details()', function() {
   });
 });
 
-api = new API('http://asoiaf.huiji.wiki');
 describe('search()', function() {
   describe('without sort', function() {
     it('no callback', function() {
@@ -74,6 +73,29 @@ describe('search()', function() {
         data.length.should.equal(0);
         done();
       });
+    });
+  });
+});
+
+describe('login()', function() {
+  it('a failed login()', function(done) {
+    var o = {
+      username: 'Test',
+      password: 'xxx'
+    };
+    api.login(o, function(err, res) {
+      res.should.equal(false);
+      done();
+    });
+  });
+  it('a successful login()', function(done) {
+    var o = {
+      username: 'Test',
+      password: 'huiji'
+    };
+    api.login(o, function(err, res) {
+      res.should.equal(true);
+      done();
     });
   });
 });
