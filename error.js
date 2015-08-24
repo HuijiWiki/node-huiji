@@ -1,3 +1,9 @@
+/*
+ * error.js exports customized Errors thrown out from mwapi.js and api.js.
+ * These customized errors are described as follows, 
+ *   Parameter: thrown if parameter given is missing or incomplete,
+ *   Request: thrown if MediaWiki returns error when calling its api
+ */
 var util = require('util');
 
 var BaseError = function(msg, constr) {
@@ -15,14 +21,6 @@ function customized(name) {
   CustomizedError.prototype.message = name;
   return CustomizedError;
 }
-
-/*
-var ParameterError = function(msg) {
-  ParameterError.super_.call(this, msg, this.constructor);
-};
-util.inherits(ParameterError, BaseError);
-ParameterError.prototype.message = 'Parameter Error';
-*/
 
 module.exports = {
   Parameter: customized('Parameter Error'),
