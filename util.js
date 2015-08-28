@@ -58,5 +58,19 @@ module.exports = {
    *   _.defaults(dst, src) will be { 'bar': 2, 'o': { 'foo': 1 } },
    *   defaults(dst, src) will be { 'bar': 2, 'o': { 'foo': 1, 'bar': 4 } }
    */
-  defaults: defaults
+  defaults: defaults,
+  /*
+   * Copy data from *src* to *dst* only for those fields that exist in *dst*
+   * if a certain field does not exist in *src*, remove such field from *dst*
+   */
+  fill: function(dst, src) {
+    _.each(dst, function(v, k) {
+      v = src[k]
+      if (v == undefined)
+        delete dst[k];
+      else
+        dst[k] = v;
+    });
+    return dst;
+  }
 };

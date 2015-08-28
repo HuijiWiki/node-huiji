@@ -134,3 +134,51 @@ describe('query()', function() {
     });
   });
 });
+
+describe('login()', function() {
+  it('a failed login()', function(done) {
+    var o = {
+      'lgname': 'Test',
+      'lgpassword': 'xxx'
+    };
+    var url = 'http://lotr.huiji.wiki';
+    mwapi.login(o, url, function(err, res) {
+      o.lgtoken = res.token;
+      o.jar = res.jar;
+      mwapi.login(o, url, function(err, res) {
+        res.should.have.property('result', 'WrongPass');
+        done();
+      });
+    });
+  });
+  it('a full login()', function(done) {
+    var o = {
+      'lgname': 'Test',
+      'lgpassword': 'huiji'
+    };
+    var url = 'http://lotr.huiji.wiki';
+    mwapi.login(o, url, function(err, res) {
+      res.should.have.property('result');
+      res.should.have.property('cookieprefix', 'huiji');
+      res.should.have.property('sessionid');
+      res.should.have.property('token');
+      res.should.have.property('jar');
+
+      o.lgtoken = res.token;
+      o.jar = res.jar;
+      mwapi.login(o, url, function(err, res) {
+        res.should.have.property('result', 'Success');
+        res.should.have.property('lgusername', 'Test');
+        res.should.have.property('jar');
+
+        // Check if we are really logged in
+        o.jar = res.jar;
+        mwapi.login(o, url, function(err, res) {
+          res.should.have.property('result', 'Success');
+          res.should.have.property('lgusername', 'Test');
+          done();
+        });
+      });
+    });
+  });
+});

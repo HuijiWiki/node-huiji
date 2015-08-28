@@ -12,11 +12,15 @@
  * Currently, following module/submodule in MediaWiki API is wrapped: 
  *   prop=extracts, 
  *   prop=pageimages,
- *   list=search
+ *   list=search,
+ *   action=login
  */
 module.exports = (function() {
   var request = require('request');
   var _ = require('lodash');
+
+  var util = require('./util.js');
+  var error = require('./error.js');
   
   var MWAPI = function() {
   };
@@ -252,22 +256,96 @@ module.exports = (function() {
       var redirects = (o.redirects == undefined) ? true : o.redirects;
       url += '/api.php?action=query&format=json&indexpageids' + 
         (redirects ? '&redirects' : '') + qs;
-      this.send(url, callback);
+      this.get(url, callback);
     },
     /*
-     * Do request to *url*, e.g., 
+     * Call action=login mediawiki api.
+     *
+     * A full login process require two login() call:
+     * 1. login with username and password and return 
+     *   {
+     *     'result': 'NeedToken',
+     *     'cookieprefix': ...,
+     *     'sessionid': ...,
+     *     'token': <token>
+     *   },
+     *   Also cookie will be returned in http header. To let caller knows its 
+     *   existance, login() will wrap cookies via request.jar and return to
+     *   upper layer.
+     * 2. Add <token> to parameters and call again, will return
+     *   {
+     *     'result': 'Success',
+     *     'lgtoken': ..., maybe useless,
+     *     other fields that we don't care
+     *   }
+     *   Phase-2 needs cookie returned in phase-1, so the caller should take 
+     *   use of jar returned in the first call. Also after the second call is 
+     *   responded, jar will be passed into callback.
+     *
+     * Parameter *o*, required, defined as {
+     *   lgname, required, string,
+     *   lgpassword, required, string,
+     *   lgtoken, optional, string, required for login-phase-2,
+     *   lgdomain, optional, string, and
+     *
+     *   jar, optional, a request.jar() object that contains cookies
+     * }
+     *
+     * For more details, check https://www.mediawiki.org/wiki/API:Login
+     *
+     * *url*, url of wiki queried, optional, e.g., 'http://lotr.huiji.wiki'
+     *
+     * *callback*, callback function to be called after sending request. If
+     * not provided, return parameters object.
+     */
+    login: function(o, url, callback) {
+      if (_.isEmpty(o)) return callback(new error.Parameter('o is empty'));
+      if (!o.lgname || !o.lgpassword) return callback(new error.Parameter('o is incomplete'));
+      var p = {
+        'lgname': '',
+        'lgpassword': '',
+        'lgtoken': '',
+        'lgdomain': ''
+      };
+      util.fill(p, o);
+      if (!url || !callback) return p;
+      url += '/api.php?action=login&format=json';
+
+      var j = o.jar || request.jar();
+      request.post({url: url, jar: j, form: p}, function(err, res, body) {
+        if (err) return callback(new error.Request(err));
+        body = JSON.parse(body);
+        if (body.login) {
+          var ret = body.login;
+          ret.jar = j;
+          callback(null, ret);
+        } else return callback(new error.Request('login(): No results returned.'));
+      });
+    },
+    /*
+     *
+     */
+    token: function() {
+    },
+    /*
+     *
+     */
+    edit: function() {
+    },
+    /*
+     * Do GET request to *url*, e.g., 
      * http://lotr.huiji.wiki/api.php?action=query&prop=extracts&exlimit=
      */
-    send: function(url, callback) {
-      if (!url) return callback('send(): url is empty.');
-      console.log('send(): ' + url);
+    get: function(url, callback) {
+      if (!url) return callback(new error.Parameter('GET: url is empty.'));
+      console.log('GET ' + url);
       request.get(url, function(err, res, body) {
-        if (err) return callback(err);
+        if (err) return callback(new error.Request(err));
         body = JSON.parse(body);
         if (body && body.query) {
-          return callback('', body);
+          return callback(null, body);
         } else {
-          return callback('send(): No results returned.');
+          return callback(new error.Request('GET: No results returned.'));
         }
       });
     }

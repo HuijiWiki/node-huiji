@@ -4,8 +4,10 @@
  * This module exports API class which take usage of MWAPI module and provides 
  * various functionalities. It is used by upper components/parts of Huiji, 
  * such as wechat.js.
- * We will add more functions when such function is needed in upper layer, 
- * for example, weibo.js in future.
+ *
+ * An API instance is a stateful object which consists of several attributes:
+ *   url, name of the wiki queried,
+ *   jar, cookie jar needed to proceed further requests.
  *
  * Currently, following functions are provided:
  *   details,
@@ -13,14 +15,21 @@
  */
 module.exports = (function() {
   var _ = require('lodash');
+  var error = require('./error.js');
   var MWAPI = require('./mwapi.js');
   var mwapi = new MWAPI();
+
+  var self = null;
   
   /*
    * *url*, url of wiki queried, optional, e.g., 'http://lotr.huiji.wiki'
    */
   var API = function(url) {
+    if (self != null) return self;
+
     this.url = url;
+    this.jar = undefined;
+    self = this;
   };
   
   API.prototype = {
@@ -123,6 +132,46 @@ module.exports = (function() {
         var res = _.pluck(data.query.search, 'title');  //  TODO: sort
         return callback('', res);
       });
+    },
+    /*
+     * Login
+     *
+     * Will call MWAPI.login(). After a successful login, cookie returned 
+     * from server will be stored in this.jar for further use.
+     *
+     * Parameter *o*, required, defined as {
+     *   username, required, string,
+     *   password, required, string
+     * }
+     *
+     * *callback*(err, data), where data is true or false.
+     */
+    login: function(o, callback) {
+      if (!o) return callback(new error.Parameter('!o'));
+      if (!o.username || !o.password) 
+        return callback(new error.Parameter('!o.username || !o.password'));
+      var p = {
+        'lgname': o.username,
+        'lgpassword': o.password
+      };
+      var url = this.url;
+      if (!url || !callback) return mwapi.login(p);
+      mwapi.login(p, url, function(err, res) {
+        if (err) return callback(new error.Request(err));
+        p.lgtoken = res.token;
+        self.jar = p.jar = res.jar;
+        mwapi.login(p, url, function(err, res) {
+          if (err) return callback(new error.Request(err));
+          self.jar = res.jar;
+          if (res.result == 'Success') callback(null, true);
+          else callback(null, false);
+        });
+      });
+    },
+    /*
+     *
+     */
+    edit: function(o, callback) {
     }
   };
   
