@@ -12,6 +12,7 @@
  * Currently, following module/submodule in MediaWiki API is wrapped: 
  *   prop=extracts, 
  *   prop=pageimages,
+ *   prop=info,
  *   list=search,
  *   action=login
  */
@@ -96,7 +97,6 @@ module.exports = (function() {
      *   pithumbsize, 50 by default,
      *   piprop, no use,
      *   picontinue, no use.
-     * }
      *
      * For more details, check http://home.huiji.wiki/api.php prop=pageimages 
      * section
@@ -110,6 +110,58 @@ module.exports = (function() {
       pilimit = (pilimit > 50) ? 50 : (pilimit < 1 ? 1 : pilimit);
       var pithumbsize = o.pithumbsize || 50;
       return '&pilimit=' + pilimit + '&pithumbsize=' + pithumbsize;
+    },
+    /*
+     * Generate part of url to get information of pages
+     *
+     * Will generate api GET url for prop=info, using following default 
+     * parameters:
+     *   inprop, no use,
+     *   intestactions, no use,
+     *   incontinue, no use
+     *
+     * For more details, check https://www.mediawiki.org/wiki/API:Properties#info_.2F_in
+     *
+     * Return query string used by prop=info, which in this case is '' only.
+     */
+    info: function() {
+      return '';
+    },
+    /*
+     * Generate part of url to get the last revision of pages
+     *
+     * This MediaWiki api is much more complicate than what is exported here. 
+     * But we only use it to get the last revision, more precisely, to get the 
+     * content of pages.
+     *
+     * Will generate api GET url for prop=revisions, using following default 
+     * parameters:
+     *   rvprop, ['content'] by default,
+     *   rvlimit, 1 by default,
+     *   rvexpandtemplates, no use,
+     *   rvgeneratexml, no use,
+     *   rvparse, no use,
+     *   rvsection, no use,
+     *   rvdiffto, no use,
+     *   rvdifftotext, no use,
+     *   rvcontentformat, no use,
+     *   rvstartid, no use,
+     *   rvendid, no use,
+     *   rvstart, no use,
+     *   rvend, no use,
+     *   rvdir, no use,
+     *   rvuser, no use,
+     *   rvexcludeuser, no use,
+     *   rvtag, no use,
+     *   rvcontinue, no use
+     *
+     * For more details, check https://www.mediawiki.org/wiki/API:Properties#revisions_.2F_rv
+     *
+     * Return query string used by prop=revisions, which in this case is 
+     *   &rvprop=content&rvlimit=1
+     */
+    revisions: function() {
+      return '&rvprop=content&rvlimit=1';
     },
     /*******************************Query: list*******************************/
     /*
