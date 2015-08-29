@@ -48,9 +48,8 @@ module.exports = {
     };
   },
   /*
-   * defaults() is a utility function to fill missing fields from *src* to 
-   * *dst*. Unlike _.defaults in lodash, this defaults() uses deep-copy like 
-   * method to handle default values.
+   * Fill missing fields from *src* to *dst*. Unlike _.defaults in lodash, 
+   * this defaults() uses deep-copy like method to handle default values.
    *
    * For example, let 
    *   dst be { 'o': { 'foo': 1 } }, 
@@ -66,11 +65,28 @@ module.exports = {
   fill: function(dst, src) {
     _.each(dst, function(v, k) {
       v = src[k]
-      if (v == undefined)
+      if (v === undefined)
         delete dst[k];
       else
         dst[k] = v;
     });
     return dst;
+  },
+  /*
+   * Return *value* if it is between *min* and *max*. Otherwise, 
+   *   return *min* if *value* is smaller than *min*, or 
+   *   return *max* if *value* is bigger than *max*.
+   *
+   * Set *value* to *defaultValue* if it is undefined.
+   */
+  limit: function(value, min, max, defaultValue) {
+    return (value > max) ? max : (value < min ? min : value);
+  },
+  /*
+   * Return *defaultValue* if *value* is undefined. Otherwise,
+   * return *value* itself.
+   */
+  option: function(value, defaultValue) {
+    return (value === undefined) ? defaultValue : value;
   }
 };

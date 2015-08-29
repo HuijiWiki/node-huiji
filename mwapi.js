@@ -24,33 +24,65 @@ module.exports = (function() {
   var error = require('./error.js');
   
   var MWAPI = function() {
+    this.parameters = {
+      'extracts': ['exlimit', 'exintro', 'exchars', 'exsentences', 'explaintext', 'exsectionformat', 'exvariant', 'excontinue'],
+      'pageimages': ['pilimit', 'pithumbsize', 'piprop', 'picontinue'],
+      'info': ['inprop', 'intestactions', 'incontinue'],
+      'revisions': ['rvprop', 'rvlimit', 'rvexpandtemplates', 'rvgeneratexml', 'rvparse', 'rvsection', 'rvdiffto', 'rvdifftotext', 'rvcontentformat', 'rvstartid', 'rvendid', 'rvstart', 'rvend', 'rvdir', 'rvuser', 'rvexcludeuser', 'rvtag', 'rvcontinue'],
+      'search': ['srsearch', 'srlimit', 'srnamespace', 'srwhat', 'srinfo', 'srprop', 'sroffset', 'srinterwiki']
+    };
   };
   
   MWAPI.prototype = {
+    /*
+     * Generate a parameter object for API *apiKey*, in which data is copied from *input*
+     *
+     * *apiKey* should be one of the keys in this.parameters
+     * *input* should have been filtered to eliminate wrong inputs
+     */
+    fill: function fill(apiKey, input) {
+      var params = this.parameters(apiKey) || [];
+      var o = _.reduce(params, function(res, v) {
+        res[v] = undefined;
+        return res;
+      }, {});
+      return util.fill(o, input);
+    },
+    /*
+     * Generate parameter string according to data in *param*
+     */
+    ps: function ps(params) {
+      return _.reduce(params, function(res, v, k) {
+        return res + '&' + k + '=' + v;
+      }, '');
+    },
     /*******************************Query: prop*******************************/
     /*
      * Generate part of url to get extracts of pages using parameters in *o*
-     *
+     *'exlimit', 'exintro', 'exchars', 'exsentences', 'explaintext', 'exsectionformat', 'exvariant', 'excontinue'
      * Parameter *o*, required, defined as {
-     *   exlimit, required, int, not bigger than 20, 1 by default,
+     *   exlimit, required, int, no bigger than 20, 1 by default,
      *   exintro, optional, true or false, true by default,
-     *   exsentences, optinal, int, not used by default,
-     *   exchars, optional, int, not used by default,
+     *   exchars, optional, int, not used by default unless exintro is set to 
+     *   false explicitly,
+     *   exsentences, optinal, int, not used by default unless exintro and 
+     *   exchars are set to false explicitly,
      *   explaintext, optional, true or false, true by default,
      *   exsectionformat, optional, string ([plain|wiki]), 'plain' by default,
      * }
      *
      * Will generate api GET url for prop=extracts, using following default
-     * parameters:
-     *   exlimit, no more than 20,
-     *   exintro, not using exchars or exsentences,
-     *   explaintext,
-     *   exsectionformat: plain,
+     * parameters, {
+     *   exlimit, 
+     *   exintro, used unless it is set to false explicitly,
+     *   exchars, not used unless exintro is set to false explicitly,
+     *   exsentences, not used unless exintro and exchars are set to false 
+     *   explicity,
+     *   explaintext, 
+     *   exsectionformat, 'plain',
      *   excontinue, no use,
      *   exvariant, no use.
      * }
-     * However, one is still able to use exchars or exsentences by overriding 
-     * them in *o*.
      *
      * For more details, check https://www.mediawiki.org/wiki/Extension:TextExtracts#API
      *
@@ -59,29 +91,31 @@ module.exports = (function() {
      */
     extracts: function(o) {
       if (_.isEmpty(o)) return '';
-      var exlimit = o.exlimit || 1;
-      exlimit = (exlimit > 20) ? 20 : (exlimit < 1 ? 1 : exlimit);
-      var exintro = (o.exintro == undefined) ? true : o.exintro;
-      var exsentences = exintro ? undefined : o.exsentences;
-      var exchars = (!exintro && !exsentences) ? o.exchars : undefined; 
-      var explaintext = (o.explaintext == undefined) ? true : o.explaintext;
-      var exsectionformat = o.exsectionformat || 'plain';
-      var raw = {
-        'exlimit': exlimit,
-        'exintro': (exintro ? '' : undefined),
-        'exsentences': exsentences,
-        'exchars': exchars,
-        'explaintext': (explaintext ? '' : undefined),
-        'exsectionformat': exsectionformat
-      };
-      var params = _.reduce(raw, function(res, v, k) {
-        if (v != undefined) res[k] = v;
-        return res;
-      }, {});
-      return _.reduce(params, function(res, v, k) {
-        res += '&' + k + '=' + v;
-        return res;
-      }, '');
+      o.exlimit = util.limit(o.exlimit, 1, 20, 1);
+      /*
+       * Priority: exintro > exchars > exsentences
+       */
+      if (o.exintro === false) {
+        if (o.exchars) {
+          delete o['exintro'];
+          delete o['exsentences'];
+        } else if (o.exsentences) {
+          delete o['exintro'];
+          delete o['exchars'];
+        } else {
+          o.exintro = '';
+          delete o['exchars'];
+          delete o['exsentences'];
+        }
+      } else {
+        o.exintro = '';
+        delete o['exchars'];
+        delete o['exsentences'];
+      }
+      o.explaintext = util.option(o.explaintext, '');
+      o.exsectionformat = o.exsectionformat || 'plain';
+      var p = this.fill('extracts', o);
+      return this.ps(p);
     },
     /*
      * Generate part of url to get thumbnails of pages using parameters in *o*
