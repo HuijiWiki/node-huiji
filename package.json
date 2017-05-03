@@ -8,13 +8,12 @@
   },
   "dependencies": {
     "request": "*", 
-    "lodash": "*",
+    "lodash": "3.00",
     "q": "*",
     "lru-cache": "*",
     "wechat": "*",
     "express": "*",
     "node-schedule": "*",
-    "sleep": "*",
     "nodeweibo": "*",
     "form-data":"~0.2.0"
   }, 

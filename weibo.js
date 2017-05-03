@@ -1,7 +1,6 @@
 module.exports = (function() {
 	var Weibo = require('nodeweibo');
 	var express = require('express');
-	var sleep = require('sleep');
 	var schedule = require('node-schedule');
   	var _ = require('lodash');
   	var API = require('./api.js');
@@ -43,6 +42,7 @@ module.exports = (function() {
 
 	    mInstance = this;
 
+	    mInstance.cooldown = [];
 
 	    mInstance.conf = default_conf;
     	_.assign(mInstance.conf, config);
@@ -231,36 +231,73 @@ module.exports = (function() {
 					break;
 				case 1:
 					rule.hour = [21];
+					rule.minute = 0;
+					var postRandomArticle = schedule.scheduleJob(rule, function(){
+						mInstance.postRandomArticle();
+					});
 					break;
 				case 2:
 					rule.hour = [15, 21];
+					rule.minute = 0;
+					var postRandomArticle = schedule.scheduleJob(rule, function(){
+						mInstance.postRandomArticle();
+					});
 					break;
 				case 3:
 					rule.hour = [11, 15, 21];
+					rule.minute = 0;
+					var postRandomArticle = schedule.scheduleJob(rule, function(){
+						mInstance.postRandomArticle();
+					});
 					break;
 				case 4:
 					rule.hour = [9, 11, 15, 21];
+					rule.minute = 0;
+					var postRandomArticle = schedule.scheduleJob(rule, function(){
+						mInstance.postRandomArticle();
+					});
 					break;
 				case 5:
 					rule.hour = [9, 11, 15, 19, 21];
+					rule.minute = 0;
+					var postRandomArticle = schedule.scheduleJob(rule, function(){
+						mInstance.postRandomArticle();
+					});
 					break;
 				case 6:
 					rule.hour = [9, 11, 15, 17, 19, 21];
+					rule.minute = 0;
+					var postRandomArticle = schedule.scheduleJob(rule, function(){
+						mInstance.postRandomArticle();
+					});
 					break;
+				case 888:
+					rule.minute = [2, 10, 20, 30, 40, 50];
+					var postRecentUpdate = schedule.scheduleJob(rule, function(){
+						mInstance.postRecentUpdate();
+					});		
+					break;			
+				case 999:
+					rule.minute = [2, 10, 20, 30, 40, 50];
+					var postRecentHuijiUpdate = schedule.scheduleJob(rule, function(){
+						mInstance.postRecentHuijiUpdate();
+					});
 				default:
-					rule.hour = [9, 11, 13, 15, 17, 19, 21];
 					break;
+
 			}
-			rule.minute = 0;
-			var postRandomArticle = schedule.scheduleJob(rule, function(){
-				mInstance.postRandomArticle();
-			});
+			
+
 
 	    },
-	    comment: function( content, id, cid ){
+	    comment: function( content, id, cid, prefix ){
 	    	var param = {
 	    		key: content,
-	    		limit: 1,
+	    		limit: 1
+	    	}
+	    	if (prefix){
+			    mInstance.url = mInstance._url(prefix);
+			    var api = new API(mInstance.url);
 	    	}
 	    	api.search(param, function(err, data){
 	    		if (err){
@@ -268,6 +305,7 @@ module.exports = (function() {
 	    			return;
 	    		}
 	    		if (mInstance.conf.debug){
+				console.log(param);
 	    			console.log(data);
 	    		}
 	    		if (data != undefined && data[0] != undefined){
@@ -320,12 +358,18 @@ module.exports = (function() {
 
 	    },
 
-	    status: function( content, username, qualityCheck ) {
+	    status: function( content, username, qualityCheck, prefix ) {
 	    	var param = {
 	    		key: content,
-	    		limit: 1,
+	    		limit: 1
 	    	}
-	    	api.search(param, function(err, data){
+	    	if (prefix){
+			    mInstance.url = mInstance._url(prefix);
+			    var api = new API(mInstance.url);
+	    	}
+	    	console.log(param);
+		console.log(prefix);
+		api.search(param, function(err, data){
 	    		if (err){
 	    			console.log(err);
 	    			return;
@@ -354,10 +398,14 @@ module.exports = (function() {
 			    		}
 			    		var msg = '';
 			    		if (username){
-			    			msg += '@'+ username+' ';
+			    			msg += '@'+ username+' ';1
 			    		}
-			    		msg += data[0].extract.substring(0,110)+'...'+mInstance._page_short_url(data[0].pageid);
-
+			    		if (data[0].extract.length < 15){
+			    			msg += content.substring(0,110)+'...'+mInstance._page_short_url(data[0].pageid, prefix);
+			    		} else {
+			    			msg += data[0].extract.substring(0,110)+'...'+mInstance._page_short_url(data[0].pageid, prefix);
+			    		}
+			    	
 			    		if (data[0].thumbnail && data[0].thumbnail.source){
 			    			var form = new FormData();
 			    			form.append('source', Weibo.appKey.appKey);
@@ -411,12 +459,58 @@ module.exports = (function() {
 					var winner = query.random[0].title;
 					if(mInstance.conf.debug)
 						console.log(winner);
-					mInstance.status( winner, false, true);
+					mInstance.status( winner, false, true, mInstance.conf.name);
 				}
 			});
 
 	    },
 
+	    postRecentHuijiUpdate: function(){
+	    	var feed = "http://121.42.179.100:8080/events-statistics-rest/webapi/records/edit;score=60?size=20&page=0";
+	    	var title;
+	    	request.get(feed, function(err, res, body){
+	    		if (!err && res.statusCode == 200) {
+	    			var body = JSON.parse(body);
+	    			if (body.message){
+	    				for( var i in body.message){
+	    					title = body.message[i].page.title;
+	    					if (mInstance.cooldown.indexOf(title) == -1){
+	    						mInstance.cooldown.push(title);
+	    						if (mInstance.cooldown > 20){
+	    							mInstance.cooldown.shift();
+	    						}
+	    						mInstance.status( title, body.message[i].site.name, false, body.message[i].site.prefix);
+	    						break;
+	    					} 
+	    				}
+	    			}
+	    		}
+	    	});
+
+	    },
+	    postRecentUpdate: function(){
+	    	var feed = "http://121.42.179.100:8080/events-statistics-rest/webapi/records/edit;sites="+mInstance.conf.name+";score=40?size=20&page=0";
+	    	var title;
+	    	request.get(feed, function(err, res, body){
+	    		if (!err && res.statusCode == 200) {
+	    			var body = JSON.parse(body);
+	    			if (body.message){
+	    				for( var i in body.message){
+	    					title = body.message[i].page.title;
+	    					if (mInstance.cooldown.indexOf(title) == -1){
+	    						mInstance.cooldown.push(title);
+	    						if (mInstance.cooldown > 20){
+	    							mInstance.cooldown.shift();
+	    						}
+	    						mInstance.status( title, false, false, body.message[i].site.prefix);
+	    						break;
+	    					} 
+	    				}
+	    			}
+	    		}
+	    	});
+
+	    },
 	    authorize: function(){
 	    	Weibo.authorize();
 	    },
@@ -433,21 +527,26 @@ module.exports = (function() {
 	    /*
 	     * Get url of the wiki site
 	     */
-	    _url: function() {
-	      return 'http://' + mInstance.conf.name + '.huiji.wiki';
+	    _url: function(prefix) {
+	    	if (!prefix){
+	    		return 'http://' + mInstance.conf.name + '.huiji.wiki';
+	    	} else{
+	    		return 'http://' + prefix + '.huiji.wiki';
+	    	}
+	      
 	    },
 	    /*
 	     * Get page url on the wiki site
 	     */
-	    _page_url: function(title) {
-	      var base = mInstance.url || mInstance._url();
+	    _page_url: function(title, prefix) {
+	      var base = mInstance.url || mInstance._url(prefix);
 	      return base + '/wiki/' + title;
 	    },
 	    /*
 	     * Get short url on the wiki site
 	     */
 	    _page_short_url: function(id) {
-	      var base = mInstance.url || mInstance._url();
+	      var base = mInstance.url || mInstance._url(prefix);
 	      return base + '/index.php?curid=' + id;
 	    },
 	    /*

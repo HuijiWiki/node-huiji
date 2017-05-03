@@ -74,7 +74,7 @@ module.exports = (function() {
         return res;
       }, {});
       return _.reduce(params, function(res, v, k) {
-        res += '&' + k + '=' + v;
+        res += '&' + k + '=' + encodeURIComponent(v);
         return res;
       }, '');
     },
@@ -150,7 +150,7 @@ module.exports = (function() {
       var srnamespace = o.srnamespace || [0];
       var srlimit = o.srlimit || 10;
       srlimit = (srlimit > 50) ? 50 : (srlimit < 1 ? 1 : srlimit);
-      return '&srsearch=' + o.srsearch + '&srwhat=' + srwhat 
+      return '&srsearch=' + encodeURIComponent(o.srsearch) + '&srwhat=' + srwhat 
         + '&srnamespace=' + srnamespace.join('|') + '&srlimit=' + srlimit;
     },
     /*
@@ -238,7 +238,7 @@ module.exports = (function() {
         var titles = o.titles || [];
         var pageids = o.pageids || [];
         if (!_.isEmpty(titles)) {
-          qs += '&titles=' + titles.join('|');
+          qs += '&titles=' + encodeURIComponent(titles.join('|'));
         } else if (!_.isEmpty(pageids)) {
           qs += '&pageids=' + pageids.join('|');
         }
@@ -262,7 +262,8 @@ module.exports = (function() {
       if (!url) return callback('send(): url is empty.');
       console.log('send(): ' + url);
       request.get(url, function(err, res, body) {
-        if (err) return callback(err);
+        console.log(body);
+	if (err) return callback(err);
         body = JSON.parse(body);
         if (body && body.query) {
           return callback('', body);
